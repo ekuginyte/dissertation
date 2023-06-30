@@ -3,7 +3,8 @@
 # Combine the list of libraries from both scripts
 library_list <- c("tidyverse", "corrplot", "betareg", "R.matlab", "glmnet", "dplyr", 
                   "cowplot", "coda", "igraph", "R6", "nimble", "MASS", "xgboost",
-                  "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc")
+                  "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc",
+                  "LaplacesDemon", "BayesS5")
 
 # Uncomment the following lines if you need to install the packages
 # for (i in library_list) {
@@ -593,6 +594,34 @@ fit_selected_horseshoe_plus_model(data = T1_LD,
                                   coef_threshold = 1,
                                   prior = "hs+")
 
+
+
+#### SIM DATA. SSS WITH SCREENING ####
+
+# Separate data into X and y
+X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
+y <- T1_LD[[1]]              # Response vector (first column)
+
+
+fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun_g,
+                      model = Uniform,
+                      tuning = 100,
+                      C0 = 5)
+
+
+res_default <- result(fit_S5)
+print(res_default$hppm) # the MAP model
+print(res_default$hppm.prob) # the posterior probability of the hppm
+plot(res_default$marg.prob,ylim=c(0,1),ylab="marginal inclusion probability")
+
+selected_variables <- names(res_default$marg.prob)[res_default$marg.prob > 0.005]
+
+
+
+
+
+
+#### SIM DATA. LAPLACE APPROXIMATION ####
 
 
 
