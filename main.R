@@ -3,7 +3,7 @@
 # Combine the list of libraries from both scripts
 library_list <- c("tidyverse", "corrplot", "betareg", "R.matlab", "glmnet", "dplyr", 
                   "cowplot", "coda", "igraph", "R6", "nimble", "MASS", "xgboost",
-                  "caret", "spikeslab")
+                  "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc")
 
 # Uncomment the following lines if you need to install the packages
 # for (i in library_list) {
@@ -16,7 +16,7 @@ for (i in library_list) {
 }
 
 # Set working directory (assuming you want to set it to the 'main' directory)
-setwd("~/Documents/Dissertation/main")
+setwd("~/Documents/Dissertation/main/Dissertation")
 
 # Remove unwanted objects
 rm(library_list, i)
@@ -367,16 +367,231 @@ for (i in 1:length(data_HD_VD)) {
 
 
 
+#### SIM DATA. SPIKE-AND-SLAB LASSO ####
+
+# Function to fit the Spike-and-Slab LASSO model, plot the coefficients,
+# and extract selected variables from a given data frame.
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, and the rest are predictors.
+#     lambda1 - Slab variance parameter.
+#     lambda0 - Vector of spike penalty parameters.
+#     theta - Prior mixing proportion.
+#     eps - Convergence criterion.
+#     plot_width - Width of the plot in inches.
+#     plot_height - Height of the plot in inches.
+# OUTPUTS:
+#     A list containing:
+#         coefficients - The fitted matrix of coefficients.
+#         ever_selected - A binary vector indicating which variables were
+#                        ever selected along the regularization path.
+#         plot - A plot of the coefficient paths for the fitted model.
+fit_sslasso <- function(data, lambda1 = 1, lambda0 = NULL, 
+                                           theta = 0.5, eps = 0.001,
+                                           plot_width = 6, plot_height = 4) {
+  
+  # Separate data into X and y
+  X <- as.matrix(data[, -1])  # Design matrix (excluding the y column)
+  y <- data[[1]]              # Response vector (first column)
+  
+  # If lambda0 is not provided, create a sequence
+  if (is.null(lambda0)) {
+    lambda0 <- seq(lambda1, length(X), length.out = 100)
+  }
+  
+  # Fit the SSLASSO model
+  result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = "fixed",
+                    lambda1 = lambda1, lambda0 = lambda0, theta = theta)
+  
+  # Set plot margins (bottom, left, top, right)
+  par(mar = c(6, 6, 2, 2))
+  
+  # Set the plot dimensions (width, height) in inches
+  par(pin = c(plot_width, plot_height))
+  
+  # Create the plot of coefficients
+  plot(result)
+  
+  # Extract selection indicators and determine which variables were ever selected
+  selected_variables <- result$select
+  ever_selected <- apply(selected_variables, 1, max)
+  
+  # Return the results as a list
+  return(list(coefficients = result$beta, ever_selected = ever_selected, plot = result))
+}
+
+
+# Simulate data (for example, T1_LD)
+# Call the function with the simulated data
+output <- fit_sslasso(T1_LD)
+
+# The output contains coefficients, ever_selected, and plot
+coefficients <- output$coefficients
+ever_selected <- output$ever_selected
 
 
 
 
+#### SIM DATA. HORSESHOE PRIOR. horseshoe package ####
+
+# Function to fit the Horseshoe model, plot predicted values against observed values,
+# and plot credible intervals for coefficients.
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, and the rest are predictors.
+#     method.tau - Method for handling tau (truncatedCauchy, halfCauchy, or fixed).
+#     tau - The (estimated) value of tau in case "fixed" is selected for method.tau.
+#     method.sigma - Method for handling sigma (Jeffreys or fixed).
+#     burn - Number of burn-in MCMC samples.
+#     nmc - Number of posterior draws to be saved.
+#     thin - Thinning parameter of the chain.
+#     alpha - Level for the credible intervals.
+# OUTPUTS:
+#     The fitted horseshoe model.
+#
+fit_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn, nmc, thin, alpha) {
+  
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input data must be a data frame.")
+  }
+  
+  # Separate data into X and y
+  X <- as.matrix(data[, -1])  # Design matrix (excluding the y column)
+  y <- data[[1]]              # Response vector (first column)
+  
+  # Fit the horseshoe model using the horseshoe package
+  fit_horseshoe <- horseshoe::horseshoe(y = y, X = X, 
+                                        method.tau = method.tau,
+                                        tau = tau, 
+                                        method.sigma = method.sigma, 
+                                        burn = burn,
+                                        nmc = nmc, 
+                                        thin = thin, 
+                                        alpha = alpha)
+  
+  # Plot predicted values against the observed data
+  plot(y, X %*% fit_horseshoe$BetaHat, col = rep("blue", 20), 
+       xlab = "Observed values", ylab = "Predicted values",
+       main = "Horseshoe Model: Predicted vs Observed Values")
+  
+  # Print the posterior mean of tau
+  cat("Posterior mean of tau:", fit_horseshoe$TauHat, "\n")
+  
+  # Load the Hmisc package for plotting credible intervals
+  library(Hmisc)
+  
+  # Plot the credible intervals for coefficients
+  xYplot(Cbind(fit_horseshoe$BetaHat, fit_horseshoe$LeftCI, fit_horseshoe$RightCI) ~ 1:ncol(X),
+         type = c("p", "g", "g"), ylab = "Coefficients", xlab = "Variables",
+         main = "Credible Intervals for Coefficients")
+  
+  # Return the fitted horseshoe model
+  return(fit_horseshoe)
+}
+
+# Loop through each dataset in the 'datasets' vector
+for (i in seq_along(datasets)) {
+  
+  # Fit the horseshoe model for the current dataset
+  result <- fit_horseshoe_model(data = datasets[[i]], 
+                                method.tau = "truncatedCauchy", 
+                                tau = 1, 
+                                method.sigma = "Jeffreys", 
+                                burn = 1000, 
+                                nmc = 5000, 
+                                thin = 1, 
+                                alpha = 0.05)
+  
+  # You can store 'result' or perform other analyses as needed
+}
 
 
 
 
+#### SIM DATA. HORSESHOE PRIOR. bayesreg package ####
+
+# Function to fit the Horseshoe prior (or HS+) model with bayesreg package, 
+#   extract selected variables based on coefficient threshold, and refit 
+#   the model using only the selected variables.
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, 
+#            and the rest are predictors.
+#     n.samples - Number of posterior samples to draw.
+#     burnin - Number of burn-in samples.
+#     thin - Thinning parameter of the chain.
+#     coef_threshold - Threshold for coefficients to select variables.
+# OUTPUTS:
+#     The summary of the refitted horseshoe model with selected variables.
+#
+fit_selected_horseshoe_model <- function(data, n.samples, burnin, thin, 
+                                         coef_threshold, prior) {
+  
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input data must be a data frame.")
+  }
+  
+  # Fit the initial horseshoe model using the bayesreg package
+  fit_horseshoe_b <- bayesreg::bayesreg(y ~ ., data = data, 
+                                        model = "gaussian",
+                                        prior = prior,
+                                        n.samples = n.samples,
+                                        burnin = burnin,
+                                        thin = thin)
+  
+  # Extract the coefficients from the fitted model
+  coefficients <- fit_horseshoe_b$mu.beta
+  coefficients <- coefficients[abs(coefficients[,1]) > coef_threshold,]
+  
+  # Extract the names of the variables with non-zero coefficients
+  selected_variables <- names(coefficients)
+  
+  # Create a formula for the new model using only the selected variables
+  selected_formula <- as.formula(paste("y ~", paste(selected_variables, collapse=" + ")))
+  
+  # Fit the new model with the selected variables
+  fit_selected_vars <- bayesreg::bayesreg(selected_formula, data = data, 
+                                          model = "gaussian",
+                                          prior = "hs",
+                                          n.samples = n.samples,
+                                          burnin = burnin,
+                                          thin = thin)
+  
+  # Display summary of the refitted model
+  selected_summary <- summary(fit_selected_vars)
+  print(selected_summary)
+  
+  # Display WAIC
+  cat(sprintf("Linear regression WAIC=%g", fit_selected_vars$waic), "\n")
+  
+  # Return the summary of the refitted model
+  return(selected_summary)
+}
+
+# Example usage with a single dataset
+
+# Here T1_LD should be a data frame where the first column is the response variable
+fit_selected_horseshoe_model(data = T1_LD, 
+                             n.samples = 1000, 
+                             burnin = 1000, 
+                             thin = 5, 
+                             coef_threshold = 1,
+                             prior = "hs")
 
 
+
+
+#### SIM DATA. HORSESHOE + PRIOR ####
+
+# Here T1_LD should be a data frame where the first column is the response variable
+fit_selected_horseshoe_plus_model(data = T1_LD, 
+                                  n.samples = 1000, 
+                                  burnin = 1000, 
+                                  thin = 5, 
+                                  coef_threshold = 1,
+                                  prior = "hs+")
 
 
 
