@@ -4,7 +4,7 @@
 library_list <- c("tidyverse", "corrplot", "betareg", "R.matlab", "glmnet", "dplyr", 
                   "cowplot", "coda", "igraph", "R6", "nimble", "MASS", "xgboost",
                   "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc",
-                  "LaplacesDemon", "BayesS5")
+                  "LaplacesDemon", "BayesS5", "monomvn")
 
 # Uncomment the following lines if you need to install the packages
 # for (i in library_list) {
@@ -510,7 +510,7 @@ for (i in seq_along(datasets)) {
 
 
 
-#### SIM DATA. HORSESHOE PRIOR. bayesreg package ####
+#### SIM DATA. HORSESHOE PRIOR. bayesreg package #### + use the other Cauchy prior!
 
 # Function to fit the Horseshoe prior (or HS+) model with bayesreg package, 
 #   extract selected variables based on coefficient threshold, and refit 
@@ -603,16 +603,16 @@ X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
 y <- T1_LD[[1]]              # Response vector (first column)
 
 
-fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun_g,
+fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun_pemom,
                       model = Uniform,
                       tuning = 100,
-                      C0 = 5)
+                      C0 = 2)
 
 
 res_default <- result(fit_S5)
-print(res_default$hppm) # the MAP model
-print(res_default$hppm.prob) # the posterior probability of the hppm
-plot(res_default$marg.prob,ylim=c(0,1),ylab="marginal inclusion probability")
+#print(res_default$hppm) # the MAP model
+#print(res_default$hppm.prob) # the posterior probability of the hppm
+plot(res_default$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion probability")
 
 selected_variables <- names(res_default$marg.prob)[res_default$marg.prob > 0.005]
 
@@ -625,10 +625,20 @@ selected_variables <- names(res_default$marg.prob)[res_default$marg.prob > 0.005
 
 
 
+#### SIM DATA. BAYESIAN LASSO ####
 
+# Separate data into X and y
+X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
+y <- T1_LD[[1]]              # Response vector (first column)
 
+fit_blasso <- monomvn::blasso(X = X, y = y, T = 5000, RJ = FALSE, verb = 1)
+# View the summary of the fit
+print(fit_blasso)
 
+# Extract the coefficients
+coefficients <- fit_blasso$beta
 
+summary(fit_blasso)
 
 
 
