@@ -6,7 +6,7 @@ library_list <- c("tidyverse", "corrplot", "betareg", "R.matlab", "glmnet", "dpl
                   "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc",
                   "LaplacesDemon", "BayesS5", "monomvn")
 
-# Uncomment the following lines if you need to install the packages
+# Un-comment the following lines if you need to install the packages
 # for (i in library_list) {
 #   install.packages(i, character.only = TRUE)
 # }
@@ -30,64 +30,64 @@ rm(library_list, i)
 # Source the file that contains the simulation functions
 source("simulate_data.R")
 
-#### SOURCE DATA FRAMES AND VECTORS OF CRIME DATA ####
-# Source the file that contains the crime data
-#source("data_crime_raw.R")
 
 
 
 
+#### SIM DATA. LASSO PENALISED REGRESSION 'glment' ####
 
-#### SIM DATA. LASSO PENALISED REGRESSION ####
-
-# Function to fit Lasso regression on different datasets and extract the best-fitted model.
+# Function to fit Lasso regression on different datasets and extract the selected predictors
 # INPUTS:
 #         data - a data frame containing the predictors and the response variable.
 #               The response variable should be named "y".
 #         nfolds - number of folds for cross-validation (default is 10).
 # OUTPUT:
-#         lasso_model: The fitted Lasso model with the optimal lambda value.
+#         selected_predictors - selected predictor data frame with coefficients.
 #
 fit_lasso <- function(data, nfolds = 10) {
   
   # Create the matrix of predictors by excluding the intercept term, 
-  # and standardize the predictors. Add an intercept column with all values equal to 1.
+  #   and standardise the predictors. Add an intercept column with all values equal to 1.
   xmatrix <- cbind(Intercept = 1, scale(model.matrix(~ . - 1, data = data[, -1])))
   
-  # Fit the Lasso model on the design matrix with alpha = 1 (Lasso penalty).
-  # Note: alpha = 0 corresponds to Ridge and alpha between 0 and 1 corresponds to ElasticNet.
+  # Fit the Lasso model on the design matrix with alpha = 1 (Lasso penalty)
   initial_lasso <- glmnet(x = xmatrix, y = data$y, alpha = 1)
   
-  # Perform k-fold cross-validation to find the optimal value of the regularization 
-  # parameter lambda that minimizes the cross-validation error.
+  # Perform k-fold cross-validation to find the optimal value of the regularisation 
+  #   parameter lambda that minimizes the cross-validation error
   lasso_cv <- cv.glmnet(x = xmatrix, y = data$y, alpha = 1, nfolds = nfolds)
   
-  # Plot the regularization path which is the coefficient profiles of the Lasso model
-  # as a function of lambda. The vertical line represents the optimal lambda value 
-  # that minimizes the cross-validation error.
+  # Plot the regularisation path which is the coefficient profiles of the Lasso model
+  #   as a function of lambda. The vertical line represents the optimal lambda value 
+  #   that minimizes the cross-validation error.
   #par(mfrow = c(1, 2))
   #plot(initial_lasso, xvar = "lambda")
   #abline(v = log(initial_lasso$lambda.min), lwd = 4, lty = 2)
   
   # Plot the cross-validation errors as a function of lambda.
-  #plot(lasso_cv)
-  #abline(v = log(lasso_cv$lambda.min), lwd = 4, lty = 2)
+  plot(lasso_cv)
+  abline(v = log(lasso_cv$lambda.min), lwd = 4, lty = 2)
   
-  # Refit the Lasso model using the optimal lambda value obtained from cross-validation.
+  # Refit the Lasso model using the optimal lambda value obtained from cross-validation
   lasso_model <- glmnet(x = xmatrix, y = data$y, alpha = 1, lambda = lasso_cv$lambda.min)
   
-  # Optionally, you can print a summary of the model with the coefficients 
-  # corresponding to the optimal lambda value.
-  # coef(T1_LD_lasso, s = T1_LD_lasso_cv$lambda.min)
+  # Extract the coefficients from the lasso model
+  coefficients <- coef(lasso_model, s = lasso_cv$lambda.min)
   
-  # Return the fitted Lasso model
-  return(lasso_model)
+  # Find the names of the variables with non-zero coefficients
+  selected_variable_names <- rownames(coefficients)[coefficients[, 1] != 0]
+  
+  # Extract the non-zero coefficients
+  selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
+  
+  # Return the selected predictors
+  return(selected_predictors)
 }
 
 
 
 
-#### SIM DATA. ELASTIC-NET PENALISED REGRESSION ####
+#### SIM DATA. ELASTIC-NET PENALISED REGRESSION 'glmnet' ####
 
 # Function to fit Elastic net regression on different datasets and extract the best-fitted model.
 # INPUTS:
@@ -95,7 +95,7 @@ fit_lasso <- function(data, nfolds = 10) {
 #               The response variable should be named "y".
 #         nfolds - number of folds for cross-validation (default is 10).
 # OUTPUT:
-#         elnet_model: The fitted Elastic net model with the optimal lambda value.
+#         selected_predictors - selected predictor data frame with coefficients.
 #
 fit_elnet <- function(data, nfolds = 10) {
   
@@ -103,8 +103,7 @@ fit_elnet <- function(data, nfolds = 10) {
   # and standardise the predictors. Add an intercept column with all values equal to 1.
   xmatrix <- cbind(Intercept = 1, scale(model.matrix(~ . - 1, data = data[, -1])))
   
-  # Fit the Lasso model on the design matrix with alpha = 1 (Lasso penalty).
-  # Note: alpha = 0 corresponds to Ridge and alpha between 0 and 1 corresponds to ElasticNet.
+  # Fit the Elastic net model on the design matrix with alpha = 0.5 (L1 + L2 penalties)
   initial_elnet <- glmnet(x = xmatrix, y = data$y, alpha = 0.5)
   
   # Perform k-fold cross-validation to find the optimal value of the regularization 
@@ -119,24 +118,29 @@ fit_elnet <- function(data, nfolds = 10) {
   #abline(v = log(initial_elnet$lambda.min), lwd = 4, lty = 2)
   
   # Plot the cross-validation errors as a function of lambda.
-  #plot(elnet_cv)
-  #abline(v = log(elnet_cv$lambda.min), lwd = 4, lty = 2)
+  plot(elnet_cv)
+  abline(v = log(elnet_cv$lambda.min), lwd = 4, lty = 2)
   
   # Refit the Elastic net model using the optimal lambda value obtained from cross-validation.
   elnet_model <- glmnet(x = xmatrix, y = data$y, alpha = 1, lambda = elnet_cv$lambda.min)
   
-  # Optionally, you can print a summary of the model with the coefficients 
-  # corresponding to the optimal lambda value.
-  # coef(T1_LD_elnet, s = T1_LD_elnet_cv$lambda.min)
+  # Extract the coefficients from the lasso model
+  coefficients <- coef(elnet_model, s = elnet_cv$lambda.min)
   
-  # Return the fitted Lasso model
-  return(elnet_model)
+  # Find the names of the variables with non-zero coefficients
+  selected_variable_names <- rownames(coefficients)[coefficients[, 1] != 0]
+  
+  # Extract the non-zero coefficients
+  selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
+  
+  # Return the selected predictors
+  return(selected_predictors)
 }
 
 
 
 
-#### SIM DATA. LASSO AND ELASTIC NET MODEL EXTRACTION ####
+#### SIM DATA. LASSO AND ELASTIC NET FITTING 'glmnet' ####
 
 # Extract BOTH the Lasso and Elastic net penalisation models using all types 
 #   of simulated data 
@@ -167,6 +171,9 @@ for (prefix in prefixes) {
   }
 }
 
+# Remove the functions and prefixes, suffixes, methods as they won't be used anymore
+rm(fit_elnet, fit_lasso, prefixes, suffixes, methods, 
+   data_var_name, data_var, model_var_name, prefix, suffix, method)
 
 
 
@@ -191,7 +198,7 @@ summary(selected_model)
 
 
 
-#### SIM DATA. XGBOOST ####
+#### SIM DATA. XGBOOST 'caret' ####
 
 # Set the initial parameters for XGBoost
 # These are general parameters to define the boosting algorithm
@@ -230,7 +237,8 @@ cv <- trainControl(
 )
 
 
-# Function to train and evaluate an XGBoost model on different datasets and plot feature importance.
+# Function to train and evaluate an XGBoost model from 'caret' pakcage on different 
+#   datasets and plot feature importance
 # INPUTS:
 #         data - a data frame containing the predictors and the response variable.
 #                The response variable should be named "y".
@@ -242,6 +250,7 @@ cv <- trainControl(
 #               rmse  - The root mean squared error (RMSE) of the model on the test set.
 #
 train_evaluate_xgb <- function(data, cv, grid) {
+  
   # Separate features and target from the dataset
   # Features (exclude the target variable 'y')
   X <- as.matrix(T1_LD[, -1])
@@ -298,9 +307,27 @@ datasets <- list(T1_LD, T1_ED, T1_HD, T1_VD, T1_XD,
 
 
 
-#### SIM DATA. SPIKE AND SLAB PRIOR #### 
 
-# Function to fit a Spike and Slab model using spikeslab package and evaluate it on different datasets.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### SIM DATA. SPIKE AND SLAB PRIOR 'spikeslab' #### 
+
+# Function to fit a Spike and Slab model using 'spikeslab' package and evaluate it on different datasets.
 # It also plots the path of the estimates for the Spike and Slab model.
 #
 # INPUTS:
@@ -326,7 +353,7 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, seed = 42
   # n.iter1 and n.iter2 control the number of iterations,
   # bigp.smalln and bigp.smalln.factor control high-dimensional low sample size adjustments,
   # other parameters control the model settings
-  result <- spikeslab(formula, data = data,
+  result <- spikeslab::spikeslab(formula, data = data,
                       n.iter1 = 1000, n.iter2 = 1000, mse = TRUE,
                       bigp.smalln = bigp_smalln, bigp.smalln.factor = bigp_smalln_factor,
                       r.effects = NULL, max.var = 500, center = TRUE, intercept = TRUE,
@@ -368,7 +395,7 @@ for (i in 1:length(data_HD_VD)) {
 
 
 
-#### SIM DATA. SPIKE-AND-SLAB LASSO ####
+#### SIM DATA. SPIKE-AND-SLAB LASSO 'SSLASSO' ####
 
 # Function to fit the Spike-and-Slab LASSO model, plot the coefficients,
 # and extract selected variables from a given data frame.
@@ -433,7 +460,7 @@ ever_selected <- output$ever_selected
 
 
 
-#### SIM DATA. HORSESHOE PRIOR. horseshoe package ####
+#### SIM DATA. HORSESHOE PRIOR. 'horseshoe' ####
 
 # Function to fit the Horseshoe model, plot predicted values against observed values,
 # and plot credible intervals for coefficients.
@@ -504,13 +531,12 @@ for (i in seq_along(datasets)) {
                                 thin = 1, 
                                 alpha = 0.05)
   
-  # You can store 'result' or perform other analyses as needed
 }
 
 
 
 
-#### SIM DATA. HORSESHOE PRIOR. bayesreg package #### + use the other Cauchy prior!
+#### SIM DATA. HORSESHOE PRIOR 'bayesreg' #### + use the other Cauchy prior!
 
 # Function to fit the Horseshoe prior (or HS+) model with bayesreg package, 
 #   extract selected variables based on coefficient threshold, and refit 
@@ -584,7 +610,7 @@ fit_selected_horseshoe_model(data = T1_LD,
 
 
 
-#### SIM DATA. HORSESHOE + PRIOR ####
+#### SIM DATA. HORSESHOE + PRIOR 'bayesreg' ####
 
 # Here T1_LD should be a data frame where the first column is the response variable
 fit_selected_horseshoe_plus_model(data = T1_LD, 
@@ -596,7 +622,7 @@ fit_selected_horseshoe_plus_model(data = T1_LD,
 
 
 
-#### SIM DATA. SSS WITH SCREENING ####
+#### SIM DATA. SSS WITH SCREENING 'BayesS5' ####
 
 # Separate data into X and y
 X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
@@ -621,11 +647,11 @@ selected_variables <- names(res_default$marg.prob)[res_default$marg.prob > 0.005
 
 
 
-#### SIM DATA. LAPLACE APPROXIMATION ####
+#### SIM DATA. LAPLACE APPROXIMATION 'LaplacesDemon' ####
 
 
 
-#### SIM DATA. BAYESIAN LASSO ####
+#### SIM DATA. BAYESIAN LASSO 'monomvn' ####
 
 # Separate data into X and y
 X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
@@ -642,29 +668,154 @@ summary(fit_blasso)
 
 
 
+#### SIM DATA. RJMCMC 'rjmcmc' ####
+
+
+
 
 
 
 
 #### CRIME ANALYSIS ####
 
-# Fit in a model
-#mdl_fr_lasso <- glmnet(x = df_predictors, y = vector_target, alpha = 1)
+#### SOURCE DATA FRAMES AND VECTORS OF CRIME DATA ####
+# Source the file that contains the crime data
+source("data_crime_raw.R")
+
+#### CRIME. LASSO PENALISED REGRESSION 'glment' ####
+
+# Function to fit Lasso regression on Crime data and extract the selected predictors.
+# INPUTS:
+#         data - a data frame containing the predictors and the response variable.
+#               The response variable should be named "y".
+#         nfolds - number of folds for cross-validation (default is 10).
+#         y - prediction vector.
+# OUTPUT:
+#         selected_predictors - selected predictor data frame with coefficients.
+#
+fit_crime_lasso <- function(data, nfolds = 10, y) {
+  
+  # Create the matrix of predictors
+  xmatrix <- model.matrix(~ ., data = data[, -ncol(data)])
+  
+  # Fit the Lasso model on the design matrix with alpha = 1 (Lasso penalty).
+  # Note: alpha = 0 corresponds to Ridge and alpha between 0 and 1 corresponds to ElasticNet.
+  initial_lasso <- glmnet(x = xmatrix, y = y, alpha = 1)
+  
+  # Perform k-fold cross-validation to find the optimal value of the regularization 
+  # parameter lambda that minimizes the cross-validation error.
+  lasso_cv <- cv.glmnet(x = xmatrix, y = y, alpha = 1, nfolds = nfolds)
+  
+  # Plot the regularisation path which is the coefficient profiles of the Lasso model
+  # as a function of lambda. The vertical line represents the optimal lambda value 
+  # that minimizes the cross-validation error.
+  #par(mfrow = c(1, 2))
+  #plot(initial_lasso, xvar = "lambda")
+  #abline(v = log(initial_lasso$lambda.min), lwd = 4, lty = 2)
+  
+  # Plot the cross-validation errors as a function of lambda.
+  plot(lasso_cv)
+  abline(v = log(lasso_cv$lambda.min), lwd = 4, lty = 2)
+  
+  # Refit the Lasso model using the optimal lambda value obtained from cross-validation.
+  lasso_model <- glmnet(x = xmatrix, y = y, alpha = 1, lambda = lasso_cv$lambda.min)
+  
+  # Extract the coefficients from the lasso model
+  coefficients <- coef(lasso_model, s = lasso_cv$lambda.min)
+  
+  # Find the names of the variables with non-zero coefficients
+  selected_variable_names <- rownames(coefficients)[coefficients[, 1] != 0]
+  
+  # Extract the non-zero coefficients
+  selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
+
+  # Return the fitted Lasso model
+  return(selected_predictors)
+}
+
+# Run the LASSO function and extract the selected coefficients
+crime_lasso <- fit_crime_lasso(data = df, nfolds = 10, y = df$ViolentCrimesPerPop)
+
+# Remove function
+rm(fit_crime_lasso)
 
 
-#cvlasso <- cv.glmnet(x = as.matrix(df_predictors), y = vector_target, alpha = 1, 
-#                     nfolds = 10)
 
 
-#par(mfrow = c(1, 2))
-#plot(mdl_fr_lasso, xvar="lambda")
-#abline(v = log(cvlasso$lambda.min), lwd = 4, lty = 2)
-#plot(cvlasso)
-#abline(v = log(cvlasso$lambda.min), lwd = 4, lty = 2)
+#### CRIME. ELNET PENALISED REGRESSION 'glmnet' ####
 
-# Extract the best lambda
-#best_lambda <- cvlasso$lambda.min
+# Function to fit Elastic net regression on Crime data and extract the selected predictors.
+# INPUTS:
+#         data - a data frame containing the predictors and the response variable.
+#               The response variable should be named "y".
+#         nfolds - number of folds for cross-validation (default is 10).
+#         y - prediction vector.
+# OUTPUT:
+#         selected_predictors - selected predictor data frame with coefficients.
+#
+fit_crime_elnet <- function(data, nfolds = 10, y) {
+  
+  # Create the matrix of predictors
+  xmatrix <- model.matrix(~ ., data = data[, -ncol(data)])
+  
+  # Fit the Elastic Net model on the design matrix with alpha = 0.5 (L1 + L2 penalties)
+  initial_elnet <- glmnet(x = xmatrix, y = y, alpha = 0.5)
+  
+  # Perform k-fold cross-validation to find the optimal value of the regularization 
+  # parameter lambda that minimizes the cross-validation error.
+  elnet_cv <- cv.glmnet(x = xmatrix, y = y, alpha = 0.5, nfolds = nfolds)
+  
+  # Plot the regularisation path which is the coefficient profiles of the Elastic net model
+  # as a function of lambda. The vertical line represents the optimal lambda value 
+  # that minimises the cross-validation error.
+  #par(mfrow = c(1, 2))
+  #plot(initial_elnet, xvar = "lambda")
+  #abline(v = log(initial_elnet$lambda.min), lwd = 4, lty = 2)
+  
+  # Plot the cross-validation errors as a function of lambda.
+  plot(elnet_cv)
+  abline(v = log(elnet_cv$lambda.min), lwd = 4, lty = 2)
+  
+  # Refit the Lasso model using the optimal lambda value obtained from cross-validation.
+  elnet_model <- glmnet(x = xmatrix, y = y, alpha = 1, lambda = elnet_cv$lambda.min)
+  
+  # Extract the coefficients from the elnet model
+  coefficients <- coef(elnet_model, s = elnet_cv$lambda.min)
+  
+  # Find the names of the variables with non-zero coefficients
+  selected_variable_names <- rownames(coefficients)[coefficients[, 1] != 0]
+  
+  # Extract the non-zero coefficients
+  selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
+  
+  # Return the selected coefficients
+  return(selected_predictors)
+}
 
-# Refit the model with the best lasso
-#mdl_fr_lasso_1 <- glmnet(x = as.matrix(df_predictors), y = vector_target, 
-#                         alpha = 1, lambda = best_lambda)
+# Run the elnet function and extract the selected coefficients
+crime_elnet <- fit_crime_elnet(data = df, nfolds = 10, y = df$ViolentCrimesPerPop)
+
+# Remove function
+rm(fit_crime_elnet)
+
+
+
+
+#### CRIME. XGBOOST 'caret' ####
+
+
+#### CRIME. XGBOOST 'xgboost' ####
+#### CRIME. SPIKE AND SLAB PRIOR 'spikeslab' ####
+#### CRIME. SPIKE AND SLAB LASSO 'SSLASSO' ####
+#### CRIME. HORSESHOE PRIOR 'horseshoe' ####
+#### CRIME. HORSESHOE PRIOR 'bayesreg' ####
+#### CRIME. HORSESHOE + PRIOR 'bayesreg' ####
+#### CRIME. SSS 'BayesS5' ####
+#### CRIME. LAPLACE APPROXIMATION 'LaplacesDemon' ####
+#### CRIME. BAYESIAN LASSO 'monomvn' ####
+#### CRIME. RJMCMC 'rjmcmc' ####
+
+
+
+
+
