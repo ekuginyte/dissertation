@@ -198,15 +198,17 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
   X <- MASS::mvrnorm(n, mu = u_x, Sigma = sigma_x)
   
   # Generate binary categorical variables
-  cat_var1 <- sample(c(0, 1), n, replace = TRUE)
+  cat_var1 <- sample(c(0, 1), n, replace = TRUE) %>% 
+    as.factor()
   # Treat as ordinal categorical variable
-  cat_var2 <- sample(1:5, n, replace = TRUE)
+  cat_var2 <- sample(1:5, n, replace = TRUE) %>% 
+    as.factor()
   
   # Generate interaction terms (multiplying first and second continuous covariate)
   interaction_term_1_2 <- X[, 1] * X[, 2]
   interaction_term_3_4 <- X[, 3] * X[, 4]
   interaction_term_21_22 <- X[, 21] * X[, 22]
-  interaction_term_c1_22 <- cat_var1 * X[, 22]
+  interaction_term_c1_22 <- interaction(cat_var1, X[, 22])
   
   # Generate polynomial feature (squared third continuous covariate)
   polynomial_feature_5 <- X[, 5]^2
@@ -215,13 +217,13 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
   polynomial_feature_23_3 <- X[, 23]^3
   
   # Generate the true regression coefficients beta
-  beta <- c(rep(6, 10), rep(4, 5), rep(3, 5), rep(0, p - 20))
+  beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 20))
   
   # Generate the error terms
   epsilon <- rnorm(n, mean = 0, sd = sigma_e)
   
   # Add the intercept too
-  intercept <- 2.0
+  intercept <- 2
   
   # Generate the response variable y
   y <- intercept + X %*% beta + 
@@ -230,7 +232,7 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
     interaction_term_1_2 + 
     interaction_term_3_4 + 
     interaction_term_21_22 + 
-    interaction_term_c1_22 +
+    as.numeric(interaction_term_c1_22) +
     polynomial_feature_5 + 
     polynomial_feature_6 + 
     polynomial_feature_23_2 +
@@ -333,7 +335,7 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
   epsilon <- rnorm(n, mean = 0, sd = sigma_e)
   
   # Generating true regression coefficients beta (I am using random beta here)
-  beta <- runif(p)
+  beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 20))
   
   # Generate the response variable y
   y <- X %*% beta + epsilon

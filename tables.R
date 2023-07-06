@@ -142,21 +142,26 @@ library(kableExtra)
 library(knitr)
 
 # Create data frame
-results <- data.frame(
-  Package = c("", "glmnet", "glmnet", "", "xgboost (caret)", "xgboost (xgboost)", "", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "bayesreg", "BayesS5", "LaplacesDemon", "monomvn", "RJMCMC"),
-  Method = c("Frequentist Methods", "LASSO", "Elastic Net", "Machine Learning Methods", "XGBoost", "XGBoost", "Bayesian Inference Methods", "Spike-and-slab prior", "Spike-and-slab LASSO prior", "Horseshoe prior", "Horseshoe prior", "Horseshoe+ prior", "SSS method", "Laplace approximation", "Bayesian LASSO", "rjmcmc"),
-  TrueSignal = rep("", 16),
-  FalsePositiveSignal = rep("", 16),
-  FalseNegativeSignal = rep("", 16),
+results_T1 <- data.frame(
+  Package = c("glmnet", "glmnet", "xgboost", "spikeslab", "SSLASSO", "horseshoe", 
+              "bayesreg", "bayesreg", "BayesS5", "LaplacesDemon", "monomvn", "rjmcmc"),
+  Method = c("LASSO", "Elastic Net", "XGBoost", "Spike-and-slab prior", 
+             "Spike-and-slab LASSO Prior", "Horseshoe prior", "Horseshoe prior", 
+             "Horseshoe+ prior", "SSS Method", "Laplace Approximation", 
+             "Bayesian LASSO", "RJMCMC"),
+  TrueSignal = rep("", 12),
+  FalsePositiveSignal = rep("", 12),
+  FalseNegativeSignal = rep("", 12),
   stringsAsFactors = FALSE
 )
 
-# Render the table using kable
-kable_output <- kable(results, align = "c", col.names = c("Package", "Method", "True Signal", "False Positive Signal", "False Negative Signal"), escape = FALSE) %>%
-  kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped"), font_size = 12) %>%
-  pack_rows(index = c(1, 4, 7), label_row_css = "text-align: center;") %>%
-  add_header_above(header = c(" " = 1, "Analysis Results" = 4), font_size = 15)
-
-kable_output
-
-
+# Plot the results
+kable(results_T1, "latex", booktabs = TRUE, 
+      col.names = c("Package", "Method", "TS", "FP", "FN"), 
+      escape = FALSE, vline = "|") %>%
+  kable_styling(latex_options = "hold_position", full_width = FALSE) %>%
+  column_spec(1:5, border_right = TRUE) %>%
+  pack_rows("Frequentist Methods", 1, 2) %>%
+  pack_rows("Machine Learning Methods", 3, 3) %>%
+  pack_rows("Bayesian Methods", 4, 12) %>%
+  add_footnote("TS=True Signal, FP=False Positive, FN=False Negative")
