@@ -4,7 +4,7 @@
 library_list <- c("tidyverse", "corrplot", "betareg", "R.matlab", "glmnet", "dplyr", 
                   "cowplot", "coda", "igraph", "R6", "nimble", "MASS", "xgboost",
                   "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc",
-                  "LaplacesDemon", "BayesS5", "monomvn")
+                  "LaplacesDemon", "BayesS5", "monomvn", "Hmisc")
 
 # Un-comment the following lines if you need to install the packages
 # for (i in library_list) {
@@ -45,6 +45,17 @@ source("simulate_data.R")
 #         selected_predictors - selected predictor data frame with coefficients.
 #
 fit_lasso <- function(data, nfolds = 10) {
+  
+  # Input checks
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'nfolds' is a function
+  if (!is.numeric(nfolds) || nfolds <= 0 || round(nfolds) != nfolds) {
+    stop("'nfolds' must be a positive integer.")
+  }
   
   # Create the matrix of predictors by excluding the intercept term, 
   #   and standardise the predictors. Add an intercept column with all values equal to 1.
@@ -98,6 +109,17 @@ fit_lasso <- function(data, nfolds = 10) {
 #         selected_predictors - selected predictor data frame with coefficients.
 #
 fit_elnet <- function(data, nfolds = 10) {
+  
+  # Input checks
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'nfolds' is a function
+  if (!is.numeric(nfolds) || nfolds <= 0 || round(nfolds) != nfolds) {
+    stop("'nfolds' must be a positive integer.")
+  }
   
   # Create the matrix of predictors by excluding the intercept term, 
   # and standardise the predictors. Add an intercept column with all values equal to 1.
@@ -497,9 +519,45 @@ ssp_T4_VD <- fit_spikeslab_prior(data = T4_VD, bigp_smalln = TRUE, bigp_smalln_f
 #         ever_selected - A binary vector indicating which variables were
 #                        ever selected along the regularization path.
 #         plot - A plot of the coefficient paths for the fitted model.
-fit_sslasso <- function(data, lambda1 = 1, lambda0 = NULL, 
+fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data),), 
                                            theta = 0.5, eps = 0.001,
                                            plot_width = 6, plot_height = 4) {
+  # Input checks
+  # Check that 'data' is a data frame
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame.")
+  }
+  
+  # Check that 'lambda1' is a positive numeric value
+  if (!is.numeric(lambda1) || lambda1 <= 0) {
+    stop("'lambda1' must be a positive numeric value.")
+  }
+  
+  # Check that 'lambda0' is a numeric sequence
+  if (!is.numeric(lambda0)) {
+    stop("'lambda0' must be a numeric sequence.")
+  }
+  
+  # Check that 'theta' is a numeric value between 0 and 1
+  if (!is.numeric(theta) || theta < 0 || theta > 1) {
+    stop("'theta' must be a numeric value between 0 and 1.")
+  }
+  
+  # Check that 'eps' is a small positive numeric value
+  if (!is.numeric(eps) || eps <= 0 || eps >= 1) {
+    stop("'eps' must be a small positive numeric value (0 < eps < 1).")
+  }
+  
+  # Check that 'plot_width' is a positive numeric value
+  if (!is.numeric(plot_width) || plot_width <= 0) {
+    stop("'plot_width' must be a positive numeric value.")
+  }
+  
+  # Check that 'plot_height' is a positive numeric value
+  if (!is.numeric(plot_height) || plot_height <= 0) {
+    stop("'plot_height' must be a positive numeric value.")
+  }
+  
   
   # Separate data into X and y
   X <- as.matrix(data[, -1])  # Design matrix (excluding the y column)
@@ -531,14 +589,34 @@ fit_sslasso <- function(data, lambda1 = 1, lambda0 = NULL,
   return(list(coefficients = result$beta, ever_selected = ever_selected, plot = result))
 }
 
-
-# Simulate data (for example, T1_LD)
 # Call the function with the simulated data
-output <- fit_sslasso(T1_LD)
+# T1 Data
+ssl_T1_LD <- fit_sslasso(T1_LD)
+ssl_T1_ED <- fit_sslasso(T1_ED)
+ssl_T1_HD <- fit_sslasso(T1_VD)
+ssl_T1_VD <- fit_sslasso(T1_HD)
+
+# T2 Data
+ssl_T2_LD <- fit_sslasso(T2_LD)
+ssl_T2_ED <- fit_sslasso(T2_ED)
+ssl_T2_HD <- fit_sslasso(T2_VD)
+ssl_T2_VD <- fit_sslasso(T2_HD)
+
+# T3 Data
+ssl_T3_LD <- fit_sslasso(T3_LD)
+ssl_T3_ED <- fit_sslasso(T3_ED)
+ssl_T3_HD <- fit_sslasso(T3_VD)
+ssl_T3_VD <- fit_sslasso(T3_HD)
+
+# T4 Data
+ssl_T4_LD <- fit_sslasso(T4_LD)
+ssl_T4_ED <- fit_sslasso(T4_ED)
+ssl_T4_HD <- fit_sslasso(T4_VD)
+ssl_T4_VD <- fit_sslasso(T4_HD)
 
 # The output contains coefficients, ever_selected, and plot
-coefficients <- output$coefficients
-ever_selected <- output$ever_selected
+ssl_T1_LD$coefficients
+ssl_T1_LD$ever_selected
 
 
 
@@ -560,7 +638,8 @@ ever_selected <- output$ever_selected
 # OUTPUTS:
 #     The fitted horseshoe model.
 #
-fit_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn, nmc, thin, alpha) {
+fit_hs_horseshoe_model <- function(data, method.tau, tau = 1, method.sigma = "Jeffreys", 
+                                   burn = 1000, nmc = 5000, thin = 1, alpha = 0.05){
   
   # Input checks
   # Ensure data is a data.frame
@@ -629,35 +708,57 @@ fit_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn, nmc, 
   return(fit_horseshoe)
 }
 
-# Loop through each dataset in the 'datasets' vector
-for (i in seq_along(datasets)) {
-  
-  # Fit the horseshoe model for the current dataset
-  result <- fit_horseshoe_model(data = datasets[[i]], 
-                                method.tau = "truncatedCauchy", 
-                                tau = 1, 
-                                method.sigma = "Jeffreys", 
-                                burn = 1000, 
-                                nmc = 5000, 
-                                thin = 1, 
-                                alpha = 0.05)
-  
-}
+# Fit the models with Truncated Cauchy priors
+# T1 Data
+hshst_T1_LD <- fit_hs_horseshoe_model(data = T1_LD, method.tau = "truncatedCauchy")
+hshst_T1_ED <- fit_hs_horseshoe_model(data = T1_ED, method.tau = "truncatedCauchy")
+hshst_T1_HD <- fit_hs_horseshoe_model(data = T1_HD, method.tau = "truncatedCauchy")
+hshst_T1_VD <- fit_hs_horseshoe_model(data = T1_VD, method.tau = "truncatedCauchy")
 
-# Loop through each dataset in the 'datasets' vector
-for (i in seq_along(datasets)) {
-  
-  # Fit the horseshoe model for the current dataset
-  result_1 <- fit_horseshoe_model(data = datasets[[i]], 
-                                method.tau = "halfCauchy", 
-                                tau = 1, 
-                                method.sigma = "Jeffreys", 
-                                burn = 1000, 
-                                nmc = 5000, 
-                                thin = 1, 
-                                alpha = 0.05)
-  
-}
+# T2 Data
+hshst_T2_LD <- fit_hs_horseshoe_model(data = T2_LD, method.tau = "truncatedCauchy")
+hshst_T2_ED <- fit_hs_horseshoe_model(data = T2_ED, method.tau = "truncatedCauchy")
+hshst_T2_HD <- fit_hs_horseshoe_model(data = T2_HD, method.tau = "truncatedCauchy")
+hshst_T2_VD <- fit_hs_horseshoe_model(data = T2_VD, method.tau = "truncatedCauchy")
+
+# T3 Data
+hshst_T3_LD <- fit_hs_horseshoe_model(data = T3_LD, method.tau = "truncatedCauchy")
+hshst_T3_ED <- fit_hs_horseshoe_model(data = T3_ED, method.tau = "truncatedCauchy")
+hshst_T3_HD <- fit_hs_horseshoe_model(data = T3_HD, method.tau = "truncatedCauchy")
+hshst_T3_VD <- fit_hs_horseshoe_model(data = T3_VD, method.tau = "truncatedCauchy")
+
+# T4 Data
+hshst_T4_LD <- fit_hs_horseshoe_model(data = T4_LD, method.tau = "truncatedCauchy")
+hshst_T4_ED <- fit_hs_horseshoe_model(data = T4_ED, method.tau = "truncatedCauchy")
+hshst_T4_HD <- fit_hs_horseshoe_model(data = T4_HD, method.tau = "truncatedCauchy")
+hshst_T4_VD <- fit_hs_horseshoe_model(data = T4_VD, method.tau = "truncatedCauchy")
+
+
+
+# Fit the models with Half Cauchy priors
+# T1 Data
+hshsh_T1_LD <- fit_hs_horseshoe_model(data = T1_LD, method.tau = "halfCauchy")
+hshsh_T1_ED <- fit_hs_horseshoe_model(data = T1_ED, method.tau = "halfCauchy")
+hshsh_T1_HD <- fit_hs_horseshoe_model(data = T1_HD, method.tau = "halfCauchy")
+hshsh_T1_VD <- fit_hs_horseshoe_model(data = T1_VD, method.tau = "halfCauchy")
+
+# T2 Data
+hshsh_T2_LD <- fit_hs_horseshoe_model(data = T2_LD, method.tau = "halfCauchy")
+hshsh_T2_ED <- fit_hs_horseshoe_model(data = T2_ED, method.tau = "halfCauchy")
+hshsh_T2_HD <- fit_hs_horseshoe_model(data = T2_HD, method.tau = "halfCauchy")
+hshsh_T2_VD <- fit_hs_horseshoe_model(data = T2_VD, method.tau = "halfCauchy")
+
+# T3 Data
+hshsh_T3_LD <- fit_hs_horseshoe_model(data = T3_LD, method.tau = "halfCauchy")
+hshsh_T3_ED <- fit_hs_horseshoe_model(data = T3_ED, method.tau = "halfCauchy")
+hshsh_T3_HD <- fit_hs_horseshoe_model(data = T3_HD, method.tau = "halfCauchy")
+hshsh_T3_VD <- fit_hs_horseshoe_model(data = T3_VD, method.tau = "halfCauchy")
+
+# T4 Data
+hshsh_T4_LD <- fit_hs_horseshoe_model(data = T4_LD, method.tau = "halfCauchy")
+hshsh_T4_ED <- fit_hs_horseshoe_model(data = T4_ED, method.tau = "halfCauchy")
+hshsh_T4_HD <- fit_hs_horseshoe_model(data = T4_HD, method.tau = "halfCauchy")
+hshsh_T4_VD <- fit_hs_horseshoe_model(data = T4_VD, method.tau = "halfCauchy")
 
 
 
@@ -678,12 +779,42 @@ for (i in seq_along(datasets)) {
 # OUTPUTS:
 #     The summary of the refitted horseshoe model with selected variables.
 #
-fit_bayesreg_horseshoe_model <- function(data, n.samples, burnin, thin, 
-                                         coef_threshold, prior) {
+fit_horseshoe_bs_model <- function(data,
+                                   n.samples = 1000, 
+                                   burnin = 1000, 
+                                   thin = 5, 
+                                   coef_threshold = 1,
+                                   prior = "hs") {
   
+  # Input checks
   # Ensure data is a data.frame
   if (!is.data.frame(data)) {
-    stop("Input data must be a data frame.")
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'n.samples' is a positive integer
+  if (!is.numeric(n.samples) || n.samples <= 0 || round(n.samples) != n.samples) {
+    stop("'n.samples' must be a positive integer.")
+  }
+  
+  # Ensure 'burnin' is a positive integer
+  if (!is.numeric(burnin) || burnin <= 0 || round(burnin) != burnin) {
+    stop("'burnin' must be a positive integer.")
+  }
+  
+  # Ensure 'thin' is a positive integer
+  if (!is.numeric(thin) || thin <= 0 || round(thin) != thin) {
+    stop("'thin' must be a positive integer.")
+  }
+  
+  # Ensure 'coef_threshold' is a positive numeric
+  if (!is.numeric(coef_threshold) || coef_threshold <= 0) {
+    stop("'coef_threshold' must be a positive numeric.")
+  }
+  
+  # Ensure 'prior' is a character and contains valid value
+  if (!is.character(prior) || !(prior %in% c("hs", "other_valid_prior"))) {
+    stop("'prior' must be a character and contain a valid value.")
   }
   
   # Fit the initial horseshoe model using the bayesreg package
@@ -724,54 +855,156 @@ fit_bayesreg_horseshoe_model <- function(data, n.samples, burnin, thin,
   return(selected_summary)
 }
 
-# Example usage with a single dataset
+# Fit the model
+# T1 Data
+hs_bs_T1_LD <- fit_horseshoe_bs_model(data = T1_LD)
+hs_bs_T1_ED <- fit_horseshoe_bs_model(data = T1_ED)
+hs_bs_T1_HD <- fit_horseshoe_bs_model(data = T1_HD)
+hs_bs_T1_VD <- fit_horseshoe_bs_model(data = T1_VD)
 
-# Here T1_LD should be a data frame where the first column is the response variable
-fit_bayesreg_horseshoe_model(data = T1_LD, 
-                             n.samples = 1000, 
-                             burnin = 1000, 
-                             thin = 5, 
-                             coef_threshold = 1,
-                             prior = "hs")
+# T2 Data
+hs_bs_T2_LD <- fit_horseshoe_bs_model(data = T2_LD)
+hs_bs_T2_ED <- fit_horseshoe_bs_model(data = T2_ED)
+hs_bs_T2_HD <- fit_horseshoe_bs_model(data = T2_HD)
+hs_bs_T2_VD <- fit_horseshoe_bs_model(data = T2_VD)
+
+# T3 Data
+hs_bs_T3_LD <- fit_horseshoe_bs_model(data = T3_LD)
+hs_bs_T3_ED <- fit_horseshoe_bs_model(data = T3_ED)
+hs_bs_T3_HD <- fit_horseshoe_bs_model(data = T3_HD)
+hs_bs_T3_VD <- fit_horseshoe_bs_model(data = T3_VD)
+
+# T4 Data
+hs_bs_T4_LD <- fit_horseshoe_bs_model(data = T4_LD)
+hs_bs_T4_ED <- fit_horseshoe_bs_model(data = T4_ED)
+hs_bs_T4_HD <- fit_horseshoe_bs_model(data = T4_HD)
+hs_bs_T4_VD <- fit_horseshoe_bs_model(data = T4_VD)
 
 
 
 
 #### SIM DATA. HORSESHOE + PRIOR 'bayesreg' ####
 
-# Here T1_LD should be a data frame where the first column is the response variable
-fit_bayesreg_horseshoe_model(data = T1_LD, 
-                                  n.samples = 1000, 
-                                  burnin = 1000, 
-                                  thin = 5, 
-                                  coef_threshold = 1,
-                                  prior = "hs+")
+# Fit the model
+# T1 Data
+hsp_bs_T1_LD <- fit_horseshoe_bs_model(data = T1_LD, prior = "hs+")
+hsp_bs_T1_ED <- fit_horseshoe_bs_model(data = T1_ED, prior = "hs+")
+hsp_bs_T1_HD <- fit_horseshoe_bs_model(data = T1_HD, prior = "hs+")
+hsp_bs_T1_VD <- fit_horseshoe_bs_model(data = T1_VD, prior = "hs+")
+
+# T2 Data
+hsp_bs_T2_LD <- fit_horseshoe_bs_model(data = T2_LD, prior = "hs+")
+hsp_bs_T2_ED <- fit_horseshoe_bs_model(data = T2_ED, prior = "hs+")
+hsp_bs_T2_HD <- fit_horseshoe_bs_model(data = T2_HD, prior = "hs+")
+hsp_bs_T2_VD <- fit_horseshoe_bs_model(data = T2_VD, prior = "hs+")
+
+# T3 Data
+hsp_bs_T3_LD <- fit_horseshoe_bs_model(data = T3_LD, prior = "hs+")
+hsp_bs_T3_ED <- fit_horseshoe_bs_model(data = T3_ED, prior = "hs+")
+hsp_bs_T3_HD <- fit_horseshoe_bs_model(data = T3_HD, prior = "hs+")
+hsp_bs_T3_VD <- fit_horseshoe_bs_model(data = T3_VD, prior = "hs+")
+
+# T4 Data
+hsp_bs_T4_LD <- fit_horseshoe_bs_model(data = T4_LD, prior = "hs+")
+hsp_bs_T4_ED <- fit_horseshoe_bs_model(data = T4_ED, prior = "hs+")
+hsp_bs_T4_HD <- fit_horseshoe_bs_model(data = T4_HD, prior = "hs+")
+hsp_bs_T4_VD <- fit_horseshoe_bs_model(data = T4_VD, prior = "hs+")
+
 
 
 
 #### SIM DATA. SSS WITH SCREENING 'BayesS5' ####
 
-# Separate data into X and y
-X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
-y <- T1_LD[[1]]              # Response vector (first column)
+# Function to fit a sparse Bayesian linear regression model using the BayesS5 
+#   package. The S5 function is used to fit a model where sparsity is promoted 
+#   in the regression coefficients. 
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, 
+#            and the remaining columns are predictors.
+#     ind_fun - A function to define the inclusion indicators of the model.
+#     model - An object of class Model defining the prior distribution.
+#     tuning - Tuning parameter for the S5 function.
+#     C0 - Normalisation constant for the S5 function.
+#
+# OUTPUTS:
+#     fit_S5 - An S5 object, which is the fitted model.
+#
+fit_S5_model <- function(data, ind_fun = ind_fun_pemom,
+                                   model = Uniform, tuning = 100,
+                                   C0 = 2) {
+  # Input checks
+  
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'ind_fun' is a function
+  if (!is.function(ind_fun)) {
+    stop("'ind_fun' must be a function.")
+  }
+  
+  # Ensure 'model' is a valid model object or a string representing a model
+  # This check will depend on your specific use case, 
+  # add a more specific check if needed
+  if (!is.character(model) && !is.list(model)) {
+    stop("'model' must be a model object or a character string representing a model.")
+  }
+  
+  # Ensure 'tuning' is a positive numeric
+  if (!is.numeric(tuning) || tuning <= 0) {
+    stop("'tuning' must be a positive numeric value.")
+  }
+  
+  # Ensure 'C0' is a positive numeric
+  if (!is.numeric(C0) || C0 <= 0) {
+    stop("'C0' must be a positive numeric value.")
+  }
+  
+  # Separate data into X and y
+  X <- as.matrix(data[, -1])  # Design matrix (excluding the y column)
+  y <- data[[1]]              # Response vector (first column)
+  
+  # Fit the model using the S5 function from the BayesS5 package
+  fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun, model = model,
+                        tuning = tuning, C0 = C0)
+  
+  # Return the fitted model
+  return(fit_S5)
+}
 
 
-fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun_pemom,
-                      model = Uniform,
-                      tuning = 100,
-                      C0 = 2)
+
+print(result(S5_T1_LD)$hppm) # the MAP model
+#print(result(S5_T1_LD)$hppm.prob) # the posterior probability of the hppm
+#plot(result(S5_T1_LD)$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion probability")
 
 
-res_default <- result(fit_S5)
-#print(res_default$hppm) # the MAP model
-#print(res_default$hppm.prob) # the posterior probability of the hppm
-plot(res_default$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion probability")
+# Fit the model
+# T1 Data
+S5_T1_LD <- fit_S5_model(data = T1_LD)# %>% results()
+S5_T1_ED <- fit_S5_model(data = T1_ED)# %>% results()
+S5_T1_HD <- fit_S5_model(data = T1_HD)# %>% results()
+S5_T1_VD <- fit_S5_model(data = T1_VD)# %>% results()
 
-selected_variables <- names(res_default$marg.prob)[res_default$marg.prob > 0.005]
+# T2 Data
+S5_T2_LD <- fit_S5_model(data = T2_LD)# %>% results()
+S5_T2_ED <- fit_S5_model(data = T2_ED)# %>% results()
+S5_T2_HD <- fit_S5_model(data = T2_HD)# %>% results()
+S5_T2_VD <- fit_S5_model(data = T2_VD)# %>% results()
 
+# T3 Data
+S5_T3_LD <- fit_S5_model(data = T3_LD)# %>% results()
+S5_T3_ED <- fit_S5_model(data = T3_ED)# %>% results()
+S5_T3_HD <- fit_S5_model(data = T3_HD)# %>% results()
+S5_T3_VD <- fit_S5_model(data = T3_VD)# %>% results()
 
-
-
+# T4 Data
+S5_T4_LD <- fit_S5_model(data = T4_LD)# %>% results()
+S5_T4_ED <- fit_S5_model(data = T4_ED)# %>% results()
+S5_T4_HD <- fit_S5_model(data = T4_HD)# %>% results()
+S5_T4_VD <- fit_S5_model(data = T4_VD)# %>% results()
 
 
 #### SIM DATA. LAPLACE APPROXIMATION 'LaplacesDemon' ####
@@ -780,27 +1013,160 @@ selected_variables <- names(res_default$marg.prob)[res_default$marg.prob > 0.005
 
 #### SIM DATA. BAYESIAN LASSO 'monomvn' ####
 
-# Separate data into X and y
-X <- as.matrix(T1_LD[, -1])  # Design matrix (excluding the y column)
-y <- T1_LD[[1]]              # Response vector (first column)
+# Function to fit a Bayesian LASSO regression model using the 'monomvn' package.
+# The function implements cross-validation for hyperparameter tuning and 
+# variable selection in the regression coefficients.
+#
+# INPUTS:
+#   data - Data frame where the first column is the response variable, 
+#         and the remaining columns are predictors.
+#   T - Number of iterations in the MCMC chain.
+#   RJ - Logical flag indicating whether to perform Reversible Jump MCMC.
+#   verb - Verbosity level of the function's output.
+#   cv_folds - Number of cross validations.
+#   lambda_seq - Sequence of lambda2 values to loop over for tuning.
+#
+# OUTPUTS:
+#   A list containing the following components:
+#   model - A blasso object, which is the fitted model.
+#   best_lambda2 - The lambda2 value that minimizes the cross-validation error.
+#
+fit_blasso_model <- function(data, T = 5000, RJ = FALSE, verb = 1, 
+                             cv_folds = 5, lambda_seq = seq(0.1, 1, by = 0.1)) {
+  
+  # Input validation
+  # Check if the input data is of the correct format: a data frame
+  if (!is.data.frame(data)) {
+    # If the input is not a data frame, throw an error and stop execution
+    stop("'data' must be a data frame.")
+  }
+  
+  # Check if the number of iterations 'T' is a positive numeric value
+  if (!is.numeric(T) || T <= 0) {
+    # If 'T' is not a positive number, throw an error and stop execution
+    stop("'T' must be a positive numeric value.")
+  }
+  
+  # Check if the flag 'RJ' is a logical value
+  if (!is.logical(RJ)) {
+    # If 'RJ' is not a logical value (TRUE/FALSE), throw an error and stop execution
+    stop("'RJ' must be a logical value.")
+  }
+  
+  # Check if the verbosity level 'verb' is a non-negative numeric value
+  if (!is.numeric(verb) || verb < 0) {
+    # If 'verb' is not a non-negative number, throw an error and stop execution
+    stop("'verb' must be a non-negative numeric value.")
+  }
+  
+  # Check if the number of cross-validation folds 'cv_folds' is a positive numeric value
+  if (!is.numeric(cv_folds) || cv_folds <= 0) {
+    # If 'cv_folds' is not a positive number, throw an error and stop execution
+    stop("'cv_folds' must be a positive numeric value.")
+  }
+  
+  # Check if the sequence of lambda values 'lambda_seq' is a numeric vector
+  if (!is.numeric(lambda_seq)) {
+    # If 'lambda_seq' is not a numeric vector, throw an error and stop execution
+    stop("'lambda_seq' must be a numeric vector.")
+  }
+  
+  # Separate data into X and y
+  X <- as.matrix(data[, -1])  # Design matrix (excluding the response column)
+  y <- data[[1]]              # Response vector (first column)
+  
+  # Initialize variables for cross-validation
+  cv_errors <- rep(0, length(lambda_seq))
+  fold_size <- round(nrow(data) / cv_folds)
+  
+  # Loop over lambda values
+  for (i in 1:length(lambda_seq)) {
+    lambda2 <- lambda_seq[i]
+    
+    # Cross-validation loop
+    for (fold in 1:cv_folds) {
+      # Index for validation set
+      val_idx <- ((fold-1)*fold_size+1):(fold*fold_size)
+      
+      # Split the data into training and validation sets
+      X_train <- X[-val_idx, ]
+      y_train <- y[-val_idx]
+      X_val <- X[val_idx, ]
+      y_val <- y[val_idx]
+      
+      # Fit the model on the training set
+      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, 
+                             RJ = RJ, lambda2 = lambda2, verb = verb)
+      
+      # Make predictions on the validation set
+      y_pred <- X_val %*% fit$beta
+      
+      # Compute and store the mean squared error
+      cv_errors[i] <- cv_errors[i] + mean((y_val - y_pred)^2) / cv_folds
+    }
+  }
+  
+  # Choose the lambda2 value that minimizes the cross-validation error
+  best_lambda2 <- lambda_seq[which.min(cv_errors)]
+  
+  # Refit the model on the full dataset with the selected lambda2 value
+  fit_blasso <- monomvn::blasso(X = X, y = y, T = T, RJ = RJ, 
+                                lambda2 = best_lambda2, verb = verb)
+  
+  # Return the fitted model and the selected lambda2 value
+  return(list("model" = fit_blasso, "best_lambda2" = best_lambda2))
+}
 
-fit_blasso <- monomvn::blasso(X = X, y = y, T = 5000, RJ = FALSE, verb = 1)
+# Fit the model
+# T1 Data
+blasso_T1_LD <- fit_blasso_model(data = T1_LD)
+blasso_T1_LD %>% plot()
+
+## summarize the beta (regression coefficients) estimates
+plot(blasso_T1_LD, burnin=100)
+points(drop(blasso_T1_LD$b), col=2, pch=20)
+points(drop(blasso_T1_LD$b), col=3, pch=18)
+legend("topleft", c("blasso-map", "lasso", "lsr"),
+       col=c(2,2,3), pch=c(21,20,18))
+
+# Plot the density of the coefficient values
+dev.new(width=18, height=10)
+plot(colMeans(blasso_T1_LD$beta))
+
+
+# T1 Data
+blasso_T1_ED <- fit_blasso_model(data = T1_ED)
+blasso_T1_HD <- fit_blasso_model(data = T1_HD)
+blasso_T1_VD <- fit_blasso_model(data = T1_VD)
+
+# T2 Data
+blasso_T2_LD <- fit_blasso_model(data = T2_LD)
+blasso_T2_ED <- fit_blasso_model(data = T2_ED)
+blasso_T2_HD <- fit_blasso_model(data = T2_VD)
+blasso_T2_VD <- fit_blasso_model(data = T2_HD)
+
+# T3 Data
+blasso_T3_LD <- fit_blasso_model(data = T3_LD)
+blasso_T3_ED <- fit_blasso_model(data = T3_ED)
+blasso_T3_HD <- fit_blasso_model(data = T3_VD)
+blasso_T3_VD <- fit_blasso_model(data = T3_HD)
+
+# T4 Data
+blasso_T4_LD <- fit_blasso_model(data = T4_LD)
+blasso_T4_ED <- fit_blasso_model(data = T4_ED)
+blasso_T4_HD <- fit_blasso_model(data = T4_VD)
+blasso_T4_VD <- fit_blasso_model(data = T4_HD)
+
+
 # View the summary of the fit
-print(fit_blasso)
-
+print(blasso_T1_LD)
 # Extract the coefficients
-coefficients <- fit_blasso$beta
+coefficients <- blasso_T1_LD$beta
+summary(blasso_T1_LD)
 
-summary(fit_blasso)
-
-
+plot(blasso_T1_LD)
 
 #### SIM DATA. RJMCMC 'rjmcmc' ####
-
-
-
-
-
 
 
 #### CRIME ANALYSIS ####
@@ -809,7 +1175,30 @@ summary(fit_blasso)
 # Source the file that contains the crime data
 source("data_crime_raw.R")
 
-#### CRIME. LASSO PENALISED REGRESSION 'glment' ####
+check_data <- function(data) {
+  # Loop over columns
+  for (col in names(data)) {
+    # Check if the column is numeric
+    if (!is.numeric(data[[col]])) {
+      stop(paste("Column", col, "is not numeric."))
+    }
+    # Check for missing values
+    if (anyNA(data[[col]])) {
+      stop(paste("Column", col, "contains missing values."))
+    }
+  }
+  # If no problems found, print a success message
+  print("All columns are numeric and contain no missing values.")
+}
+
+check_data(df)
+
+# Standardise the predictors
+df_st <- cbind(df[, 1], scale(df[, -1], center = TRUE, scale = TRUE))
+
+
+
+#### CRIME. LASSO PENALISED REGRESSION 'glmnet' ####
 
 # Function to fit Lasso regression on Crime data and extract the selected predictors.
 # INPUTS:
@@ -821,6 +1210,17 @@ source("data_crime_raw.R")
 #         selected_predictors - selected predictor data frame with coefficients.
 #
 fit_crime_lasso <- function(data, nfolds = 10, y) {
+  
+  # Input checks
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'nfolds' is a function
+  if (!is.numeric(nfolds) || nfolds <= 0 || round(nfolds) != nfolds) {
+    stop("'nfolds' must be a positive integer.")
+  }
   
   # Create the matrix of predictors
   xmatrix <- model.matrix(~ ., data = data[, -ncol(data)])
@@ -881,6 +1281,17 @@ rm(fit_crime_lasso)
 #         selected_predictors - selected predictor data frame with coefficients.
 #
 fit_crime_elnet <- function(data, nfolds = 10, y) {
+  
+  # Input checks
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'nfolds' is a function
+  if (!is.numeric(nfolds) || nfolds <= 0 || round(nfolds) != nfolds) {
+    stop("'nfolds' must be a positive integer.")
+  }
   
   # Create the matrix of predictors
   xmatrix <- model.matrix(~ ., data = data[, -ncol(data)])
@@ -1138,6 +1549,106 @@ crime_spikeslab_prior <- fit_crime_spikeslab_prior(data,
 
 
 #### CRIME. SPIKE AND SLAB LASSO 'SSLASSO' ####
+
+# Function to fit the Spike-and-Slab LASSO model, plot the coefficients,
+# and extract selected variables from a given data frame.
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, and the rest are predictors.
+#     y - prediction variable.
+#     lambda1 - Slab variance parameter.
+#     lambda0 - Vector of spike penalty parameters.
+#     theta - Prior mixing proportion.
+#     eps - Convergence criterion.
+#     plot_width - Width of the plot in inches.
+#     plot_height - Height of the plot in inches.
+# OUTPUTS:
+#     A list containing:
+#         coefficients - The fitted matrix of coefficients.
+#         ever_selected - A binary vector indicating which variables were
+#                        ever selected along the regularization path.
+#         plot - A plot of the coefficient paths for the fitted model.
+fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),), 
+                        theta = 0.5, eps = 0.001, plot_width = 6, plot_height = 4) {
+  
+  # Input checks
+  # Check that 'data' is a data frame
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame.")
+  }
+  
+  # Check that 'lambda1' is a positive numeric value
+  if (!is.numeric(lambda1) || lambda1 <= 0) {
+    stop("'lambda1' must be a positive numeric value.")
+  }
+  
+  # Check that 'lambda0' is a numeric sequence
+  if (!is.numeric(lambda0)) {
+    stop("'lambda0' must be a numeric sequence.")
+  }
+  
+  # Check that 'theta' is a numeric value between 0 and 1
+  if (!is.numeric(theta) || theta < 0 || theta > 1) {
+    stop("'theta' must be a numeric value between 0 and 1.")
+  }
+  
+  # Check that 'eps' is a small positive numeric value
+  if (!is.numeric(eps) || eps <= 0 || eps >= 1) {
+    stop("'eps' must be a small positive numeric value (0 < eps < 1).")
+  }
+  
+  # Check that 'plot_width' is a positive numeric value
+  if (!is.numeric(plot_width) || plot_width <= 0) {
+    stop("'plot_width' must be a positive numeric value.")
+  }
+  
+  # Check that 'plot_height' is a positive numeric value
+  if (!is.numeric(plot_height) || plot_height <= 0) {
+    stop("'plot_height' must be a positive numeric value.")
+  }
+  
+  
+  # Separate data into X and y
+  X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
+  
+  # If lambda0 is not provided, create a sequence
+  if (is.null(lambda0)) {
+    lambda0 <- seq(lambda1, length(X), length.out = 100)
+  }
+  
+  # Fit the SSLASSO model
+  result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = "fixed",
+                    lambda1 = lambda1, lambda0 = lambda0, theta = theta)
+  
+  # Set plot margins (bottom, left, top, right)
+  par(mar = c(6, 6, 2, 2))
+  
+  # Set the plot dimensions (width, height) in inches
+  par(pin = c(plot_width, plot_height))
+  
+  # Create the plot of coefficients
+  plot(result)
+  
+  # Extract selection indicators and determine which variables were ever selected
+  selected_variables <- result$select
+  ever_selected <- apply(selected_variables, 1, max)
+  
+  # Return the results as a list
+  return(list(coefficients = result$beta, ever_selected = ever_selected, plot = result))
+}
+
+# Call the function with the Crimes data
+ssl_crime <- fit_crime_sslasso(data = df, y = df$ViolentCrimesPerPop)
+#sslasso_crime
+
+# The output contains coefficients, ever_selected, and plot
+ssl_crime$coefficients
+ssl_crime$ever_selected
+
+
+
+
+
 #### CRIME. HORSESHOE PRIOR 'horseshoe' ####
 
 # Function to fit the Horseshoe prior model, plot predicted values against observed values,
@@ -1155,7 +1666,8 @@ crime_spikeslab_prior <- fit_crime_spikeslab_prior(data,
 # OUTPUTS:
 #     fit_horseshoe - The fitted horseshoe model.
 #
-fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn, nmc, thin, alpha) {
+fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma, 
+                                      burn, nmc, thin, alpha) {
   
   # Input checks
   # Ensure data is a data.frame
@@ -1191,7 +1703,8 @@ fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn,
   }
   
   # Separate data into X and y
-  X <- as.matrix(data[, -1])  # Design matrix (excluding the y column)
+  X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
+  X <- cbind(X[, 1], scale(X[, -1], center = TRUE, scale = TRUE))
   y <- data[[1]]              # Response vector (first column)
   
   # Fit the horseshoe model using the horseshoe package
@@ -1210,10 +1723,10 @@ fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn,
        main = "Horseshoe Model: Predicted vs Observed Values")
   
   # Print the posterior mean of tau
-  cat("Posterior mean of tau:", fit_horseshoe$TauHat, "\n")
+  #cat("Posterior mean of tau:", fit_horseshoe$TauHat, "\n")
   
   # Load the Hmisc package for plotting credible intervals
-  library(Hmisc)
+  #library(Hmisc)
   
   # Plot the credible intervals for coefficients
   xYplot(Cbind(fit_horseshoe$BetaHat, fit_horseshoe$LeftCI, fit_horseshoe$RightCI) ~ 1:ncol(X),
@@ -1224,30 +1737,17 @@ fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma, burn,
   return(fit_horseshoe)
 }
 
-# Loop through each dataset in the 'datasets' vector
-for (i in seq_along(datasets)) {
-  
-  # Fit the horseshoe model for the current dataset
-  result <- fit_horseshoe_model(data = datasets[[i]], 
-                                method.tau = "truncatedCauchy", 
-                                tau = 1, 
-                                method.sigma = "Jeffreys", 
-                                burn = 1000, 
-                                nmc = 5000, 
-                                thin = 1, 
-                                alpha = 0.05)
-  
-}
 
 # Run the functions an extract the results
-crime_horseshoe_model <- fit_crime_horseshoe_model(data,
-                                                   method.tau,
-                                                   tau,
-                                                   method.sigma,
-                                                   burn,
-                                                   nmc,
-                                                   thin,
-                                                   alpha)
+# Truncated Cauchy prior
+crime_horseshoe_t_model <- fit_crime_horseshoe_model(data = df,
+                                                   method.tau = "truncatedCauchy",
+                                                   tau = 10,
+                                                   method.sigma = "Jeffreys", 
+                                                   burn = 1000, 
+                                                   nmc = 5000, 
+                                                   thin = 10, 
+                                                   alpha = 0.05)
 #### CRIME. HORSESHOE PRIOR 'bayesreg' ####
 #### CRIME. HORSESHOE + PRIOR 'bayesreg' ####
 #### CRIME. SSS 'BayesS5' ####
