@@ -328,6 +328,9 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
     set.seed(seed)
   }
   
+  # Adjust p to generate the correct number of continuous variables
+  p <- p - 5
+  
   # Group sizes
   group_sizes <- rep(p / 5, 5)
   
@@ -355,7 +358,8 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
   # Inclute 2 interaction terms
   # Generate interaction terms
   interaction_term_1_2_3 <- X[, 1] * X[, 2] * X[, 3]
-  interaction_term_3_4 <- X[, 4] * X[, 5]
+  interaction_term_4_5 <- X[, 4] * X[, 5]
+  interaction_term_16_17 <- X[, 16] * X[, 17]
   
   # Generating true regression coefficients beta
   beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 15))
@@ -364,18 +368,39 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
   beta_cat_var1 <- 4
   beta_cat_var2 <- 0
   beta_it_1_2_3 <- 3
+  beta_it_4_5 <- 0
+  beta_it_16_17 <- 0
   
   # Generate the error terms
   epsilon <- rnorm(n, mean = 0, sd = sigma_e)
   
   # Generate the response variable y
-  y <- X %*% beta + epsilon
+  y <- X %*% beta + 
+    beta_cat_var1 * as.numeric(cat_var1) + 
+    beta_cat_var2 * as.numeric(cat_var2) + 
+    beta_it_1_2_3 * interaction_term_1_2_3 + 
+    beta_it_4_5 * interaction_term_4_5 + 
+    beta_it_16_17 * interaction_term_16_17 +
+    epsilon
+  
   
   # Combine continuous covariates and y into a data frame
-  sim_data <- as.data.frame(cbind(y, X))
+  # Combine continuous covariates, categorical vars, interaction terms, 
+  # polynomial features and y into a data frame
+  sim_data <- as.data.frame(cbind(y, 
+                                  cat_var1, 
+                                  cat_var2, 
+                                  interaction_term_1_2_3, 
+                                  interaction_term_4_5, 
+                                  interaction_term_16_17,
+                                  X))
+  
   
   # Name the columns of the data frame
-  colnames(sim_data) <- c("y", paste0("X", 1:p))
+  colnames(sim_data) <- c("y", "cat_var1", "cat_var2", 
+                          "interaction_term_1_2_3", "interaction_term_4_5",
+                          "interaction_term_16_17",
+                          paste0("X", 1:p))
   
   # Return the dataset
   return(sim_data)
