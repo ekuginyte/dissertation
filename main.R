@@ -234,9 +234,9 @@ xgb_grid <- expand.grid(
   gamma = c(0, 0.1, 1),                       # Minimum loss reduction required
   colsample_bytree = c(0.6, 0.8, 1),          # Fraction of features to be randomly sampled for each tree
   min_child_weight = c(1, 3, 5),              # Minimum sum of instance weight needed in a leaf
-  subsample = c(0.8, 1) ,                      # Fraction of observations to be randomly sampled for each tree
-  objective = "reg:linear"                    # Specify the learning task and the corresponding learning objective
+  subsample = c(0.8, 1)                      # Fraction of observations to be randomly sampled for each tree
 )
+
 
 # Define cross-validation strategy
 # This helps in assessing the model's performance in an unbiased way using a subset of the data
@@ -300,9 +300,12 @@ train_evaluate_xgb <- function(data, xgb_cv, xgb_grid) {
   xgb_model <- train(
     x = X_train,               # Feature matrix
     y = y_train,               # Target vector
-    trControl = cv,            # Cross-validation strategy
-    tuneGrid = grid,           # Grid of hyperparameters to tune
-    method = "xgbTree"         # XGBoost model
+    trControl = xgb_cv,            # Cross-validation strategy
+    tuneGrid = xgb_grid,           # Grid of hyperparameters to tune
+    method = "xgbTree",         # XGBoost model
+    metric = "RMSE",
+    maximize = FALSE,
+    objective = "reg:linear"                    # Specify the learning task and the corresponding learning objective
   )
   
   # Make predictions on the test set using the trained model
@@ -325,20 +328,34 @@ train_evaluate_xgb <- function(data, xgb_cv, xgb_grid) {
   return(xgb_model)
 }
 
-# List of all datasets
-datasets <- list(T1_LD, T1_ED, T1_HD, T1_VD, T1_XD, 
-                 T2_LD, T2_ED, T2_HD, T2_VD, T2_XD, 
-                 T3_LD, T3_ED, T3_HD, T3_VD, T3_XD, 
-                 T4_LD, T4_ED, T4_HD, T4_VD, T4_XD)
+# Fit the function
+# Type 1 data
+T1_LD_xgboost <- train_evaluate_xgb(data = T1_LD, xgb_cv, xgb_grid)
+T1_ED_xgboost <- train_evaluate_xgb(data = T1_ED, xgb_cv, xgb_grid)
+T1_VD_xgboost <- train_evaluate_xgb(data = T1_HD, xgb_cv, xgb_grid)
+T1_HD_xgboost <- train_evaluate_xgb(data = T1_VD, xgb_cv, xgb_grid)
+T1_XD_xgboost <- train_evaluate_xgb(data = T1_XD, xgb_cv, xgb_grid)
 
-# Loop through each dataset and train the model
-#for (data in datasets) {
-#  train_evaluate_xgb(data, cv, grid)
-#}
+# Type 2 data
+T2_LD_xgboost <- train_evaluate_xgb(data = T2_LD, xgb_cv, xgb_grid)
+T2_ED_xgboost <- train_evaluate_xgb(data = T2_ED, xgb_cv, xgb_grid)
+T2_VD_xgboost <- train_evaluate_xgb(data = T2_HD, xgb_cv, xgb_grid)
+T2_HD_xgboost <- train_evaluate_xgb(data = T2_VD, xgb_cv, xgb_grid)
+T2_XD_xgboost <- train_evaluate_xgb(data = T2_XD, xgb_cv, xgb_grid)
 
+# Type 3 data
+T3_LD_xgboost <- train_evaluate_xgb(data = T3_LD, xgb_cv, xgb_grid)
+T3_ED_xgboost <- train_evaluate_xgb(data = T3_ED, xgb_cv, xgb_grid)
+T3_VD_xgboost <- train_evaluate_xgb(data = T3_HD, xgb_cv, xgb_grid)
+T3_HD_xgboost <- train_evaluate_xgb(data = T3_VD, xgb_cv, xgb_grid)
+T3_XD_xgboost <- train_evaluate_xgb(data = T3_XD, xgb_cv, xgb_grid)
 
-
-
+# Type 4 data
+T4_LD_xgboost <- train_evaluate_xgb(data = T4_LD, xgb_cv, xgb_grid)
+T4_ED_xgboost <- train_evaluate_xgb(data = T4_ED, xgb_cv, xgb_grid)
+T4_VD_xgboost <- train_evaluate_xgb(data = T4_HD, xgb_cv, xgb_grid)
+T4_HD_xgboost <- train_evaluate_xgb(data = T4_VD, xgb_cv, xgb_grid)
+T4_XD_xgboost <- train_evaluate_xgb(data = T4_XD, xgb_cv, xgb_grid)
 
 
 
@@ -368,13 +385,13 @@ datasets <- list(T1_LD, T1_ED, T1_HD, T1_VD, T1_XD,
 #     bigp_smalln        - A logical indicating if the high-dimensional low sample size adjustments
 #                          should be made. Should be either TRUE or FALSE.
 #     bigp_smalln_factor - A numeric adjustment factor to be used when bigp.smalln is TRUE.
-#     seed               - An integer used for setting the seed for reproducibility. Default is 42.
+#     seed               - An NEGATIVE integer used for setting the seed for reproducibility.
 #
 # OUTPUT:
 #     ss_results - The fitted Spike and Slab model.
 #
 fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0, screen = FALSE,
-                                K = 10, seed = 42) {
+                                K = 10, seed = -42) {
   
   # Input validation
   if (!is.data.frame(data)) {
@@ -397,8 +414,8 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0, scree
     stop("screen should be a logical value (either TRUE or FALSE).")
   }
   
-  if (!is.numeric(seed) || length(seed) != 1 || seed < 0 || seed != as.integer(seed)) {
-    stop("seed should be a single non-negative integer value.")
+  if (!is.numeric(seed) || length(seed) != 1 || seed > 0 || seed != as.integer(seed)) {
+    stop("seed should be a single negative integer value.")
   }
   
   # Extract the response variable and predictors from the data
@@ -463,25 +480,25 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0, scree
 # Extract the selected variables
 # T1 data
 ssp_T1_LD <- fit_spikeslab_prior(data = T1_LD, bigp_smalln = FALSE)
-ssp_T1_ED <- fit_spikeslab_prior(data = T1_ED, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
+ssp_T1_ED <- fit_spikeslab_prior(data = T1_ED, bigp_smalln = FALSE)
 ssp_T1_HD <- fit_spikeslab_prior(data = T1_HD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 ssp_T1_VD <- fit_spikeslab_prior(data = T1_VD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 
 # T2 data
 ssp_T2_LD <- fit_spikeslab_prior(data = T2_LD, bigp_smalln = FALSE)
-ssp_T2_ED <- fit_spikeslab_prior(data = T2_ED, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
+ssp_T2_ED <- fit_spikeslab_prior(data = T2_ED, bigp_smalln = FALSE)
 ssp_T2_HD <- fit_spikeslab_prior(data = T2_HD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 ssp_T2_VD <- fit_spikeslab_prior(data = T2_VD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 
 # T3 data
 ssp_T3_LD <- fit_spikeslab_prior(data = T3_LD, bigp_smalln = FALSE)
-ssp_T3_ED <- fit_spikeslab_prior(data = T3_ED, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
+ssp_T3_ED <- fit_spikeslab_prior(data = T3_ED, bigp_smalln = FALSE)
 ssp_T3_HD <- fit_spikeslab_prior(data = T3_HD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 ssp_T3_VD <- fit_spikeslab_prior(data = T3_VD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 
 # T4 data
 ssp_T4_LD <- fit_spikeslab_prior(data = T4_LD, bigp_smalln = FALSE)
-ssp_T4_ED <- fit_spikeslab_prior(data = T4_ED, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
+ssp_T4_ED <- fit_spikeslab_prior(data = T4_ED, bigp_smalln = FALSE)
 ssp_T4_HD <- fit_spikeslab_prior(data = T4_HD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 ssp_T4_VD <- fit_spikeslab_prior(data = T4_VD, bigp_smalln = TRUE, bigp_smalln_factor = 1, screen = TRUE)
 
@@ -1516,13 +1533,13 @@ fit_crime_xgboost <- function(data, y, xgb_cv, xgb_grid) {
 #                          should be made. Should be either TRUE or FALSE.
 #     bigp_smalln_factor - A numeric adjustment factor to be used when bigp.smalln is TRUE.
 #     y                  - Prediction variable.
-#     seed               - An integer used for setting the seed for reproducibility. Default is 42.
+#     seed               - A NEGATIVE integer used for setting the seed for reproducibility.
 #
 # OUTPUT:
 #     A list containing:
 #         result - The fitted Spike and Slab model.
 #
-fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, seed = 42) {
+fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, seed = -42) {
   
   # Input validation
   if (!is.data.frame(data)) {
