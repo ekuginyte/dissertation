@@ -197,7 +197,7 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
   # Generate the continuous covariates X
   X <- MASS::mvrnorm(n, mu = u_x, Sigma = sigma_x)
   
-  # Generate binary categorical variables
+  # Generate binary categorical variable
   cat_var1 <- sample(c(0, 1), n, replace = TRUE) %>% 
     as.factor()
   # Treat as ordinal categorical variable
@@ -217,7 +217,7 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
   polynomial_feature_23_3 <- X[, 23]^3
   
   # Generate the true regression coefficients beta
-  beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 20))
+  beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 15))
   
   # Generate the error terms
   epsilon <- rnorm(n, mean = 0, sd = sigma_e)
@@ -225,18 +225,32 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
   # Add the intercept too
   intercept <- 2
   
+  # Define the betas
+  beta_cat_var1 <- 4
+  beta_it_1_2 <- 3
+  beta_p_23_2 <- 6
+  
+  # Use zero for all other betas
+  beta_cat_var2 <- 0
+  beta_it_3_4 <- 0
+  beta_it_21_22 <- 0
+  beta_it_c1_22 <- 0
+  beta_p_5 <- 0
+  beta_p_6 <- 0
+  beta_p_23_3 <- 0
+  
   # Generate the response variable y
   y <- intercept + X %*% beta + 
-    cat_var1 + 
-    cat_var2 + 
-    interaction_term_1_2 + 
-    interaction_term_3_4 + 
-    interaction_term_21_22 + 
-    as.numeric(interaction_term_c1_22) +
-    polynomial_feature_5 + 
-    polynomial_feature_6 + 
-    polynomial_feature_23_2 +
-    polynomial_feature_23_3 + 
+    beta_cat_var1 * as.numeric(cat_var1) + 
+    beta_cat_var2 * as.numeric(cat_var2) + 
+    beta_it_1_2 * interaction_term_1_2 + 
+    beta_it_3_4 * interaction_term_3_4 + 
+    beta_it_21_22 * interaction_term_21_22 + 
+    beta_it_c1_22 * as.numeric(interaction_term_c1_22) +
+    beta_p_5 * polynomial_feature_5 + 
+    beta_p_6 * polynomial_feature_6 + 
+    beta_p_23_2 * polynomial_feature_23_2 +
+    beta_p_23_3 * polynomial_feature_23_3 +
     epsilon
   
   # Combine continuous covariates, categorical vars, interaction terms, 
@@ -331,11 +345,28 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
     MASS::mvrnorm(n, mu = rep(u_x[i], ncol(cov_matrices[[i]])), Sigma = cov_matrices[[i]])
   }))
   
+  # Generate binary categorical variable
+  cat_var1 <- sample(c(0, 1), n, replace = TRUE) %>% 
+    as.factor()
+  # Treat as ordinal categorical variable
+  cat_var2 <- sample(1:5, n, replace = TRUE) %>% 
+    as.factor()
+  
+  # Inclute 2 interaction terms
+  # Generate interaction terms
+  interaction_term_1_2_3 <- X[, 1] * X[, 2] * X[, 3]
+  interaction_term_3_4 <- X[, 4] * X[, 5]
+  
+  # Generating true regression coefficients beta
+  beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 15))
+  
+  # Define the betas
+  beta_cat_var1 <- 4
+  beta_cat_var2 <- 0
+  beta_it_1_2_3 <- 3
+  
   # Generate the error terms
   epsilon <- rnorm(n, mean = 0, sd = sigma_e)
-  
-  # Generating true regression coefficients beta (I am using random beta here)
-  beta <- c(rep(6, 5), rep(4, 5), rep(3, 5), rep(0, p - 20))
   
   # Generate the response variable y
   y <- X %*% beta + epsilon

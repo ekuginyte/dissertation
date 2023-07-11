@@ -200,18 +200,6 @@ rm(fit_elnet, fit_lasso, prefixes, suffixes, methods,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 #### SIM DATA. AIC ####
 
 # Fit a full model with all predictors
@@ -839,7 +827,7 @@ fit_horseshoe_bs_model <- function(data,
   # Fit the new model with the selected variables
   fit_selected_vars <- bayesreg::bayesreg(selected_formula, data = data, 
                                           model = "gaussian",
-                                          prior = "hs",
+                                          prior = prior,
                                           n.samples = n.samples,
                                           burnin = burnin,
                                           thin = thin)
@@ -948,9 +936,9 @@ fit_S5_model <- function(data, ind_fun = ind_fun_pemom,
   # Ensure 'model' is a valid model object or a string representing a model
   # This check will depend on your specific use case, 
   # add a more specific check if needed
-  if (!is.character(model) && !is.list(model)) {
-    stop("'model' must be a model object or a character string representing a model.")
-  }
+  #if (!is.character(model) && !is.list(model)) {
+  #  stop("'model' must be a model object or a character string representing a model.")
+  #}
   
   # Ensure 'tuning' is a positive numeric
   if (!is.numeric(tuning) || tuning <= 0) {
@@ -1191,11 +1179,81 @@ check_data <- function(data) {
   print("All columns are numeric and contain no missing values.")
 }
 
+# Does the data have any missing values?
 check_data(df)
 
 # Standardise the predictors
 df_st <- cbind(df[, 1], scale(df[, -1], center = TRUE, scale = TRUE))
 
+
+# Check for outliers
+
+# Define a function to detect outliers based on the IQR
+# INPUTS:
+#         data - the data frame containing the data
+#         columns - the columns in which to look for outliers
+#         factor - the factor to multiply the IQR by to find the bounds (default is 2)
+# OUTPUT:
+#         outlier_indices - indices of outliers.
+# 
+detect_outliers_iqr <- function(data, columns, factor = 2){
+  
+  # Initialize a vector to hold the indices of outlier rows
+  outlier_indices <- c()
+  
+  # Loop over each specified column
+  for(col in columns){
+    
+    # Calculate the first quartile (25th percentile)
+    Q1 <- quantile(data[[col]], 0.25, na.rm = TRUE)
+    
+    # Calculate the third quartile (75th percentile)
+    Q3 <- quantile(data[[col]], 0.75, na.rm = TRUE)
+    
+    # Calculate the interquartile range (IQR)
+    IQR <- Q3 - Q1
+    
+    # Calculate the lower bound for what will be considered an outlier
+    lower_bound <- Q1 - factor * IQR
+    
+    # Calculate the upper bound for what will be considered an outlier
+    upper_bound <- Q3 + factor * IQR
+    
+    # Identify the indices of rows where the column value is an outlier
+    outliers <- which(data[[col]] < lower_bound | data[[col]] > upper_bound)
+    
+    # Add the indices of the outliers to the list of outlier indices
+    outlier_indices <- c(outlier_indices, outliers)
+  }
+  
+  # Return the unique outlier indices
+  return(unique(outlier_indices))
+}
+
+
+# Call the detect_outliers_iqr function, passing the data frame and column names of the numeric columns.
+outlier_indices <- detect_outliers_iqr(df, names(df))
+
+# Print the number of outliers and their indices
+cat(paste0("Number of outliers detected: ", length(outlier_indices)), "\n")
+cat(paste0("Outlier indices: ", outlier_indices), "\n")
+
+# Remove the outliers from the data frame by subsetting the data frame to exclude these rows.
+# The negative sign before outlier_indices means "all rows EXCEPT these indices".
+df_no_outliers <- df[-outlier_indices, ]
+
+
+
+
+# Check for Multicollinearity
+# Fit the regression model
+model <- lm(ViolentCrimesPerPop ~ ., data = df)
+car::vif(model)
+
+library(caret)
+# Find predictors with near zero variance
+nzv <- nearZeroVar(df, saveMetrics= TRUE)
+print(nzv)
 
 
 #### CRIME. LASSO PENALISED REGRESSION 'glmnet' ####
@@ -1656,6 +1714,7 @@ ssl_crime$ever_selected
 #
 # INPUTS:
 #     data - Crime dataset.
+#     y - prediction variable.
 #     method.tau - Method for handling tau (truncatedCauchy, halfCauchy, or fixed).
 #     tau - The (estimated) value of tau in case "fixed" is selected for method.tau.
 #     method.sigma - Method for handling sigma (Jeffreys or fixed).
@@ -1666,7 +1725,7 @@ ssl_crime$ever_selected
 # OUTPUTS:
 #     fit_horseshoe - The fitted horseshoe model.
 #
-fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma, 
+fit_crime_horseshoe_model <- function(data, y, method.tau, tau, method.sigma, 
                                       burn, nmc, thin, alpha) {
   
   # Input checks
@@ -1705,7 +1764,6 @@ fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma,
   # Separate data into X and y
   X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
   X <- cbind(X[, 1], scale(X[, -1], center = TRUE, scale = TRUE))
-  y <- data[[1]]              # Response vector (first column)
   
   # Fit the horseshoe model using the horseshoe package
   fit_horseshoe <- horseshoe::horseshoe(y = y, X = X, 
@@ -1741,6 +1799,7 @@ fit_crime_horseshoe_model <- function(data, method.tau, tau, method.sigma,
 # Run the functions an extract the results
 # Truncated Cauchy prior
 crime_horseshoe_t_model <- fit_crime_horseshoe_model(data = df,
+                                                     y = df$ViolentCrimesPerPop,
                                                    method.tau = "truncatedCauchy",
                                                    tau = 10,
                                                    method.sigma = "Jeffreys", 
@@ -1749,12 +1808,327 @@ crime_horseshoe_t_model <- fit_crime_horseshoe_model(data = df,
                                                    thin = 10, 
                                                    alpha = 0.05)
 #### CRIME. HORSESHOE PRIOR 'bayesreg' ####
+
+# Function to fit the Horseshoe prior (or HS+) model with bayesreg package, 
+#   extract selected variables based on coefficient threshold, and refit 
+#   the model using only the selected variables.
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, 
+#            and the rest are predictors.
+#     n.samples - Number of posterior samples to draw.
+#     burnin - Number of burn-in samples.
+#     thin - Thinning parameter of the chain.
+#     coef_threshold - Threshold for coefficients to select variables.
+# OUTPUTS:
+#     The summary of the refitted horseshoe model with selected variables.
+#
+fit_horseshoe_bs_crime <- function(data,
+                                   y,
+                                   n.samples = 1000, 
+                                   burnin = 1000, 
+                                   thin = 5, 
+                                   coef_threshold = 1,
+                                   prior = "hs") {
+  
+  # Input checks
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure 'n.samples' is a positive integer
+  if (!is.numeric(n.samples) || n.samples <= 0 || round(n.samples) != n.samples) {
+    stop("'n.samples' must be a positive integer.")
+  }
+  
+  # Ensure 'burnin' is a positive integer
+  if (!is.numeric(burnin) || burnin <= 0 || round(burnin) != burnin) {
+    stop("'burnin' must be a positive integer.")
+  }
+  
+  # Ensure 'thin' is a positive integer
+  if (!is.numeric(thin) || thin <= 0 || round(thin) != thin) {
+    stop("'thin' must be a positive integer.")
+  }
+  
+  # Ensure 'coef_threshold' is a positive numeric
+  if (!is.numeric(coef_threshold) || coef_threshold <= 0) {
+    stop("'coef_threshold' must be a positive numeric.")
+  }
+  
+  # Separate data into X and y
+  X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
+  X <- cbind(Intercept = X[, 1], scale(X[, -1], center = TRUE, scale = TRUE))
+  
+  # Combine standardized predictors and response variable into a new data frame
+  data_std <- cbind(y, as.data.frame(X))
+  
+  # Formula to fit the model (assuming that y is the name of your response variable)
+  formula <- as.formula(paste("y ~", paste(colnames(X)[-1], collapse = " + ")))
+  
+  # Fit the initial horseshoe model using the bayesreg package
+  fit_horseshoe_b <- bayesreg::bayesreg(formula, data = data_std, 
+                                        model = "gaussian",
+                                        prior = prior,
+                                        n.samples = n.samples,
+                                        burnin = burnin,
+                                        thin = thin)
+  
+  # Extract the coefficients from the fitted model
+  coefficients <- fit_horseshoe_b$mu.beta
+  coefficients <- coefficients[abs(coefficients[,1]) > coef_threshold,]
+  
+  # Extract the names of the variables with non-zero coefficients
+  selected_variables <- names(coefficients)
+  
+  # Create a formula for the new model using only the selected variables
+  selected_formula <- as.formula(paste("y ~", paste(selected_variables, collapse=" + ")))
+  
+  # Fit the new model with the selected variables
+  fit_selected_vars <- bayesreg::bayesreg(selected_formula, data = data, 
+                                          model = "gaussian",
+                                          prior = prior,
+                                          n.samples = n.samples,
+                                          burnin = burnin,
+                                          thin = thin)
+  
+  # Display summary of the refitted model
+  selected_summary <- summary(fit_selected_vars)
+  print(selected_summary)
+  
+  # Display WAIC
+  cat(sprintf("Linear regression WAIC=%g", fit_selected_vars$waic), "\n")
+  
+  # Return the summary of the refitted model
+  return(selected_summary)
+}
+
+# Fit the model
+hs_bs_crime <- fit_horseshoe_bs_crime(data = df, y = df$ViolentCrimesPerPop,
+                                      prior = "hs")
+
+
+
 #### CRIME. HORSESHOE + PRIOR 'bayesreg' ####
+
+# Fit the model
+hsp_bs_crime <- fit_horseshoe_bs_crime(data = df, y = df$ViolentCrimesPerPop,
+                                       prior = "hs+")
+
+
+
 #### CRIME. SSS 'BayesS5' ####
+
+# Function to fit a sparse Bayesian linear regression model using the BayesS5 
+#   package. The S5 function is used to fit a model where sparsity is promoted 
+#   in the regression coefficients. 
+#
+# INPUTS:
+#     data - Data frame where the first column is the response variable, 
+#            and the remaining columns are predictors.
+#     y - Target variable.
+#     ind_fun - A function to define the inclusion indicators of the model.
+#     model - An object of class Model defining the prior distribution.
+#     tuning - Tuning parameter for the S5 function.
+#     C0 - Normalisation constant for the S5 function.
+#
+# OUTPUTS:
+#     fit_S5 - An S5 object, which is the fitted model.
+#
+fit_S5_crime <- function(data, y, ind_fun = ind_fun_pemom,
+                         model = Bernoulli_Uniform, tuning = 20,
+                         C0 = 5) {
+  # Input checks
+  
+  # Ensure data is a data.frame
+  if (!is.data.frame(data)) {
+    stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure y is a numeric vector 
+  if (!is.vector(y) && !is.numeric(y)) {
+    stop("Input 'y' must be a numeric vector.")
+  }
+  
+  # Ensure 'ind_fun' is a function
+  if (!is.function(ind_fun)) {
+    stop("'ind_fun' must be a function.")
+  }
+  
+  # Ensure 'model' is a valid model object or a string representing a model
+  # This check will depend on your specific use case, 
+  # add a more specific check if needed
+  #if (!is.character(model) && !is.list(model)) {
+  #  stop("'model' must be a model object or a character string representing a model.")
+  #}
+  
+  # Ensure 'tuning' is a positive numeric
+  if (!is.numeric(tuning) || tuning <= 0) {
+    stop("'tuning' must be a positive numeric value.")
+  }
+  
+  # Ensure 'C0' is a positive numeric
+  if (!is.numeric(C0) || C0 <= 0) {
+    stop("'C0' must be a positive numeric value.")
+  }
+  
+  # Scale data and create a matrix
+  #X <- scale(model.matrix(~ . - 1, data = data[, -ncol(data)]), 
+  #           center = TRUE, scale = TRUE)
+  
+  # Separate data into X and y
+  X <- model.matrix(~ . - 1, data = data[, -ncol(data)])  # Design matrix (excluding the y column)
+  
+  # Rename the columns
+  colnames(X) <- paste0("X", 1:ncol(X))
+  
+  # Fit the model using the S5 function from the BayesS5 package
+  fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun, model = model,
+                        tuning = tuning, C0 = C0)
+  
+  # Return the fitted model
+  return(fit_S5)
+}
+
+# Fit the model
+S5_crime <- fit_S5_crime(data = df, y = df$ViolentCrimesPerPop)# %>% results()
+
+# Print the MAP model
+print(result(S5_crime)$hppm) 
+print(result(S5_crime)$hppm.prob) # the posterior probability of the hppm
+plot(result(S5_crime)$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion probability")
+
+
 #### CRIME. LAPLACE APPROXIMATION 'LaplacesDemon' ####
 #### CRIME. BAYESIAN LASSO 'monomvn' ####
+
+# Function to fit a Bayesian LASSO regression model using the 'monomvn' package.
+# The function implements cross-validation for hyperparameter tuning and 
+# variable selection in the regression coefficients.
+#
+# INPUTS:
+#   data - Data frame where the first column is the response variable, 
+#         and the remaining columns are predictors.
+#   y - Target variable.
+#   T - Number of iterations in the MCMC chain.
+#   RJ - Logical flag indicating whether to perform Reversible Jump MCMC.
+#   verb - Verbosity level of the function's output.
+#   cv_folds - Number of cross validations.
+#   lambda_seq - Sequence of lambda2 values to loop over for tuning.
+#
+# OUTPUTS:
+#   A list containing the following components:
+#   model - A blasso object, which is the fitted model.
+#   best_lambda2 - The lambda2 value that minimizes the cross-validation error.
+#
+fit_blasso_crime <- function(data, y, T = 1000, RJ = FALSE, verb = 1, 
+                             cv_folds = 1, lambda_seq = 0.8) {
+  
+  # Input validation
+  # Check if the input data is of the correct format: a data frame
+  if (!is.data.frame(data)) {
+    # If the input is not a data frame, throw an error and stop execution
+    stop("'data' must be a data frame.")
+  }
+  
+  # Check if the number of iterations 'T' is a positive numeric value
+  if (!is.numeric(T) || T <= 0) {
+    # If 'T' is not a positive number, throw an error and stop execution
+    stop("'T' must be a positive numeric value.")
+  }
+  
+  # Check if the flag 'RJ' is a logical value
+  if (!is.logical(RJ)) {
+    # If 'RJ' is not a logical value (TRUE/FALSE), throw an error and stop execution
+    stop("'RJ' must be a logical value.")
+  }
+  
+  # Check if the verbosity level 'verb' is a non-negative numeric value
+  if (!is.numeric(verb) || verb < 0) {
+    # If 'verb' is not a non-negative number, throw an error and stop execution
+    stop("'verb' must be a non-negative numeric value.")
+  }
+  
+  # Check if the number of cross-validation folds 'cv_folds' is a positive numeric value
+  if (!is.numeric(cv_folds) || cv_folds <= 0) {
+    # If 'cv_folds' is not a positive number, throw an error and stop execution
+    stop("'cv_folds' must be a positive numeric value.")
+  }
+  
+  # Check if the sequence of lambda values 'lambda_seq' is a numeric vector
+  #if (!is.numeric(lambda_seq)) {
+  #  # If 'lambda_seq' is not a numeric vector, throw an error and stop execution
+  #  stop("'lambda_seq' must be a numeric vector.")
+  #}
+  
+  # Scale data and create a matrix
+  X <- scale(model.matrix(~ . - 1, data = data[, -ncol(data)]), 
+             center = TRUE, scale = TRUE)
+  
+  # Initialize variables for cross-validation
+  cv_errors <- rep(0, length(lambda_seq))
+  fold_size <- round(nrow(data) / cv_folds)
+  
+  # Loop over lambda values
+  for (i in 1:length(lambda_seq)) {
+    lambda2 <- lambda_seq[i]
+    
+    # Cross-validation loop
+    for (fold in 1:cv_folds) {
+      # Index for validation set
+      val_idx <- ((fold-1)*fold_size+1):(fold*fold_size)
+      
+      # Split the data into training and validation sets
+      X_train <- X[-val_idx, ]
+      y_train <- y[-val_idx]
+      X_val <- X[val_idx, ]
+      y_val <- y[val_idx]
+      
+      
+      # Fit the model on the training set
+      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, thin = 10, M = ncol(X), 
+                             RJ = FALSE, lambda2 = 0.8, verb = verb)
+      
+      # Make predictions on the validation set
+      y_pred <- X_val %*% fit$beta
+      
+      # Compute and store the mean squared error
+      cv_errors[i] <- cv_errors[i] + mean((y_val - y_pred)^2) / cv_folds
+    }
+  }
+  
+  # Choose the lambda2 value that minimizes the cross-validation error
+  best_lambda2 <- lambda_seq[which.min(cv_errors)]
+  
+  # Refit the model on the full dataset with the selected lambda2 value
+  fit_blasso <- monomvn::blasso(X = X, y = y, T = T, RJ = RJ, 
+                                lambda2 = best_lambda2, verb = verb)
+  
+  # Return the fitted model and the selected lambda2 value
+  return(list("model" = fit_blasso, "best_lambda2" = best_lambda2))
+}
+
+# Fit the model
+blasso_crime <- fit_blasso_crime(data = df, y = df$ViolentCrimesPerPop)
+blasso_crime %>% plot()
+
+## summarize the beta (regression coefficients) estimates
+plot(blasso_crime, burnin=100)
+points(drop(blasso_crime$b), col=2, pch=20)
+points(drop(blasso_crime$b), col=3, pch=18)
+legend("topleft", c("blasso-map", "lasso", "lsr"),
+       col=c(2,2,3), pch=c(21,20,18))
+
+# Plot the density of the coefficient values
+dev.new(width=18, height=10)
+plot(colMeans(blasso_crime$beta))
+
+
 #### CRIME. RJMCMC 'rjmcmc' ####
 
+# Could we maybe fit models with the most important variables that 
+#   were identified in previous methods?
 
 
 
