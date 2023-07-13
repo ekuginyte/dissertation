@@ -211,8 +211,8 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
   interaction_term_c1_22 <- interaction(cat_var1, X[, 22])
   
   # Generate polynomial feature (squared third continuous covariate)
-  polynomial_feature_5 <- X[, 5]^2
-  polynomial_feature_6 <- X[, 6]^3
+  polynomial_feature_5_2 <- X[, 5]^2
+  polynomial_feature_6_3 <- X[, 6]^3
   polynomial_feature_23_2 <- X[, 23]^2
   polynomial_feature_23_3 <- X[, 23]^3
   
@@ -247,8 +247,8 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
     beta_it_3_4 * interaction_term_3_4 + 
     beta_it_21_22 * interaction_term_21_22 + 
     beta_it_c1_22 * as.numeric(interaction_term_c1_22) +
-    beta_p_5 * polynomial_feature_5 + 
-    beta_p_6 * polynomial_feature_6 + 
+    beta_p_5 * polynomial_feature_5_2 + 
+    beta_p_6 * polynomial_feature_6_3 + 
     beta_p_23_2 * polynomial_feature_23_2 +
     beta_p_23_3 * polynomial_feature_23_3 +
     epsilon
@@ -262,17 +262,20 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
                                   interaction_term_3_4,
                                   interaction_term_21_22,
                                   interaction_term_c1_22,
-                                  polynomial_feature_5,
-                                  polynomial_feature_6, 
+                                  polynomial_feature_5_2,
+                                  polynomial_feature_6_3, 
                                   polynomial_feature_23_2,
                                   polynomial_feature_23_3, X))
   
+  # Make sure the categorical variables are factors
+  sim_data$cat_var1 <- as.factor(sim_data$cat_var1)
+  sim_data$cat_var2 <- as.factor(sim_data$cat_var2)
   
   # Name the columns of the data frame
   colnames(sim_data) <- c("y", "cat_var1", "cat_var2", 
                           "interaction_1_2", "interaction_3_4",
                           "interaction_21_22", "interaction_term_c1_22", 
-                          "poly_5", "poly_6", "poly_23_2", "poly_23_3",
+                          "poly_5_2", "poly_6_3", "poly_23_2", "poly_23_3",
                           paste0("X", 1:p))
   
   # Return the dataset
@@ -395,6 +398,9 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
                                   interaction_term_16_17,
                                   X))
   
+  # Make sure the categorical variables are factors
+  sim_data$cat_var1 <- as.factor(sim_data$cat_var1)
+  sim_data$cat_var2 <- as.factor(sim_data$cat_var2)
   
   # Name the columns of the data frame
   colnames(sim_data) <- c("y", "cat_var1", "cat_var2", 
