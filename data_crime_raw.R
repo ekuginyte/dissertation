@@ -79,7 +79,7 @@ cols_with_na <- colSums(is.na(rows_with_na_indices))
 cols_to_remove <- c("countyCode", "communityCode", "rapes", "rapesPerPop", "robberies", "robbbPerPop", 
                     "assaults", "assaultPerPop", "burglaries", "burglPerPop", "larcenies", "larcPerPop", 
                     "autoTheft", "autoTheftPerPop", "arsons", "arsonsPerPop", "nonViolPerPop", "fold",
-                    "state", "murders", "murdPerPop")
+                    "state", "murders", "murdPerPop", "OwnOccQrange", "RentQrange")
 
 # Remove columns
 df <- df[, !(names(df) %in% cols_to_remove)]
