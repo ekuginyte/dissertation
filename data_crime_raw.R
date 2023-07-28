@@ -79,7 +79,9 @@ cols_with_na <- colSums(is.na(rows_with_na_indices))
 cols_to_remove <- c("countyCode", "communityCode", "rapes", "rapesPerPop", "robberies", "robbbPerPop", 
                     "assaults", "assaultPerPop", "burglaries", "burglPerPop", "larcenies", "larcPerPop", 
                     "autoTheft", "autoTheftPerPop", "arsons", "arsonsPerPop", "nonViolPerPop", "fold",
-                    "state", "murders", "murdPerPop", "OwnOccQrange", "RentQrange")
+                    "murders", "murdPerPop", "OwnOccQrange", "RentQrange", "state",
+                    # Sensitive variables
+                    "racepctblack", "PctForeignBorn")
 
 # Remove columns
 df <- df[, !(names(df) %in% cols_to_remove)]
@@ -97,24 +99,14 @@ cols_with_na_logical <- (cols_with_na > 0) |
   # or rows can be deleted altogether
 df_with_na_cols_with_na <- rows_with_na_indices[, cols_with_na_logical]
 
-# df_with_na_cols_with_na shows that the variables that have only some 
-  # missing data will not be relevant to the analysis, as these cannot be used 
-  # as predictors or targets.
-#irrelevant_variables <- colnames(df_with_na_cols_with_na)[-1]
-
-# Delete these irrelevant variables
-#df <- df[, !(names(df) %in% irrelevant_variables)]
-
 # Remove the rows with missing data
 df <- df[complete.cases(df), ]
 
-# Extract the community names seperately as it won't play a part in the 
-  # analysis
-df_communities <- df[, 1] %>% 
-  data.frame()
-
 # Remove community names from the main df
 df <- df[, -1]
+
+# Rename the target
+colnames(df)[99] <- "y"
 
 # Remove unwanted objects
 rm(df_with_na_cols_with_na, rows_with_na_indices, cols_to_remove, cols_with_na,
@@ -124,31 +116,241 @@ rm(df_with_na_cols_with_na, rows_with_na_indices, cols_to_remove, cols_with_na,
 
 
 ################################################################################
-#### VARIABLES CONTINUOUS VS DISCRETE ####
-# Identify numeric columns
-numeric_cols <- sapply(df, is.numeric)
-
-# Extract numeric columns
-df_numeric <- df[, numeric_cols]
-
-# Identify continuous and discrete columns
-continuous_cols <- sapply(df_numeric, function(x) any(x != round(x)))
-discrete_cols <- !continuous_cols
-
-# Extract continuous and discrete columns
-df_continuous <- df_numeric[, continuous_cols]
-df_discrete <- df_numeric[, discrete_cols]
-
-# Remove unwanted objects
-rm(df_numeric, continuous_cols, discrete_cols, numeric_cols)
 
 
-# Separate the target
-df_target <- data.frame(df[, "ViolentCrimesPerPop"])
+#### TRANSFORMING DATA ####
 
-# Predictors
-df_predictors <- data.frame(df[, -103])
+#y <- df$y
+#y_trans <- log(y + 1)
+#df_trans <- log(df[, -dim(df)[2]] + 1)
 
-# Convert df_target to numeric
-vector_target <- as.numeric(df_target[, 1])
+# Transform all data
+df_t <- log(df + 1)
+
+
+
+#### EXPLORATORY ANALYSIS ####
+
+
+
+## PLOTTING HISTOGRAMS ##
+
+# Create a list to hold the plots
+hist_list <- list()
+
+# Loop over the columns of the dataframe
+for (i in 1:(ncol(df))) {
+  # Create the histogram for column i
+  hist_list[[i]] <- ggplot(df, aes_string(names(df)[i])) + 
+    geom_histogram(fill = "gray99", color = "lightblue3", size = 0.4, alpha = 0.5) + 
+    ylab("Count") +
+    # Choose theme of plot
+    theme_minimal()  
+}
+
+# Arrange the plots in a grid
+#do.call(grid.arrange, c(hist_list[c(1:6)], ncol = 3, nrow = 2))
+
+## PLOTTING HISTOGRAMS TRANSFORMED DATA ##
+# Create a list to hold the plots
+hist_t_list <- list()
+
+# Loop over the columns of the dataframe
+for (i in 1:(ncol(df_t))) {
+  # Create the histogram for column i
+  hist_t_list[[i]] <- ggplot(df_t, aes_string(names(df_t)[i])) + 
+    geom_histogram(fill = "gray99", color = "lightblue3", size = 0.4, alpha = 0.5) + 
+    ylab("Count") +
+    # Choose theme of plot
+    theme_minimal()  
+}
+
+# Arrange the plots in a grid
+#do.call(grid.arrange, c(hist_t_list[c(1:6)], ncol = 3, nrow = 2))
+
+## PLOT INTERACTIONS WITH THE PREDICTION ##
+
+# Create a list to hold the plots
+scatter_t_list <- list()
+
+# Loop over the columns of the dataframe
+for (i in 1:(ncol(df_t)-1)) {
+  # Create the scatter plot for column i vs prediction variable
+  scatter_t_list[[i]] <- ggplot(df_t, aes_string(x = names(df_t)[i], y = "y")) +
+    geom_point(colour = "plum3", alpha = 0.2) +
+    # Minimal theme of plopt
+    theme_minimal() 
+}
+
+# Arrange the plots in a grid
+#do.call(grid.arrange, c(scatter_t_list[c(7:12)], ncol = 3, nrow = 2))
+
+
+
+
+## PLOT BOXPLOTS ##
+
+# Create a list to hold the plots
+boxplot_t_list <- list()
+
+# Loop over the columns of the dataframe
+for (i in 1:(ncol(df_t))) {
+  # Create the boxplot for column i
+  boxplot_t_list[[i]] <- ggplot(df_t, aes_string(x = 1, y = names(df_t)[i])) +
+    geom_boxplot(fill = "lightblue3", colour = "gray20", size = 0.1, alpha = 0.4) +
+    xlab("") +  # Removing the x-label as it's not meaningful here
+    theme_minimal() +
+    theme(axis.text.x = element_blank())  # Remove x-axis text
+}
+
+# Arrange the plots in a grid
+#do.call(grid.arrange, c(boxplot_t_list[c(19:24)], ncol = 3, nrow = 2))
+
+
+
+
+
+## PLOT CORRELATION MATRIX ##
+
+# Calculate the correlation matrix
+cor_matrix <- cor(df_t)
+
+# Customize the corrplot
+#corrplot::corrplot(cor_matrix, 
+#                   method = "color",   # use colored cells
+#                   #type = "lower",     # only show the lower triangle of the matrix
+#                   addCoefasPercent = FALSE, # remove correlation coefficients
+#                   tl.pos = "n",       # remove text labels
+#                   mar = c(0,0,1,0),   # margins
+#                   col = colorRampPalette(c("lightblue4", "white", "violetred4"))(200) # color gradient from blue (negative) via white (neutral) to red (positive)
+#)
+
+#cor_s <- summary(cor_matrix)
+
+cor_df <- data.frame(cor_matrix)
+
+rownames(cor_df[abs(cor_df$y) > 0.4 & abs(cor_df$y) < 1, ])
+
+
+
+## MULTICOLLINEARITY CHECK ##
+
+# Fit a linear model
+#model <- lm(y ~ ., data = df)
+
+# Calculate VIF
+#vif_values <- vif(model)
+
+
+## NORMALITY CHECKS ##
+# Apply Shapiro-Wilk test to each column
+#p_values <- apply(df_t, 2, function(x) shapiro.test(x)$p.value)
+
+# Create a data frame of the results
+#results <- data.frame(Variable = names(p_values), P_Value = p_values)
+#any(results$P_Value > 0.05)
+
+
+## MISSING VALUES ##
+
+#check_data <- function(data) {
+#  # Loop over columns
+#  for (col in names(data)) {
+#    # Check if the column is numeric
+#    if (!is.numeric(data[[col]])) {
+#      stop(paste("Column", col, "is not numeric."))
+#    }
+#    # Check for missing values
+#    if (anyNA(data[[col]])) {
+#      stop(paste("Column", col, "contains missing values."))
+#    }
+#  }
+#  # If no problems found, print a success message
+#  print("All columns are numeric and contain no missing values.")
+#}
+
+# Does the data have any missing values?
+#check_data(df)
+
+
+
+
+#### OUTLIERS ####
+
+# Define a function to detect outliers based on the IQR
+# INPUTS:
+#         data - the data frame containing the data
+#         columns - the columns in which to look for outliers
+#         factor - the factor to multiply the IQR by to find the bounds (default is 2)
+# OUTPUT:
+#         outlier_indices - indices of outliers.
+# 
+#detect_outliers_iqr <- function(data, columns, factor = 2){
+  
+  # Initialize a vector to hold the indices of outlier rows
+#  outlier_indices <- c()
+  
+  # Loop over each specified column
+#  for(col in columns){
+    
+    # Calculate the first quartile (25th percentile)
+#    Q1 <- quantile(data[[col]], 0.25, na.rm = TRUE)
+    
+    # Calculate the third quartile (75th percentile)
+#    Q3 <- quantile(data[[col]], 0.75, na.rm = TRUE)
+    
+    # Calculate the interquartile range (IQR)
+#    IQR <- Q3 - Q1
+    
+    # Calculate the lower bound for what will be considered an outlier
+#    lower_bound <- Q1 - factor * IQR
+    
+    # Calculate the upper bound for what will be considered an outlier
+#    upper_bound <- Q3 + factor * IQR
+    
+    # Identify the indices of rows where the column value is an outlier
+#    outliers <- which(data[[col]] < lower_bound | data[[col]] > upper_bound)
+    
+    # Add the indices of the outliers to the list of outlier indices
+#    outlier_indices <- c(outlier_indices, outliers)
+#  }
+  
+  # Return the unique outlier indices
+#  return(unique(outlier_indices))
+#}
+
+
+# Call the detect_outliers_iqr function, passing the data frame and column names of the numeric columns.
+#outlier_indices <- detect_outliers_iqr(df, names(df))
+
+# Print the number of outliers and their indices
+#cat(paste0("Number of outliers detected: ", length(outlier_indices)), "\n")
+#cat(paste0("Outlier indices: ", outlier_indices), "\n")
+
+# Remove the outliers from the data frame by subsetting the data frame to exclude these rows.
+# The negative sign before outlier_indices means "all rows EXCEPT these indices".
+#df_no_outliers <- df[-outlier_indices, ]
+
+# Remove the unwanted data
+rm(df_no_outliers, p_values, results, vif_values, i, check_data, 
+   detect_outliers_iqr, scatter_list, model, outlier_indices)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

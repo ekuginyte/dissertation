@@ -1,4 +1,4 @@
-#### SIM DATA. LASSO PENALISED REGRESSION 'glment' ####
+#### LASSO PENALISED REGRESSION 'glment' ####
 
 # Function to fit Lasso regression on different datasets and extract the selected predictors
 # INPUTS:
@@ -6,10 +6,11 @@
 #               The response variable should be named "y".
 #         cat_var - logical factor if there are categorical variables.
 #         nfolds - number of folds for cross-validation (default is 10).
+#         standardize - TRUE or FALSE to standardise data.
 # OUTPUT:
 #         selected_predictors - selected predictor data frame with coefficients.
 #
-fit_lasso <- function(data, cat_var = FALSE, nfolds = 10) {
+fit_lasso <- function(data, cat_var = FALSE, nfolds = 10, standardize = FALSE) {
   
   # Input checks
   # Ensure data is a data.frame
@@ -25,6 +26,11 @@ fit_lasso <- function(data, cat_var = FALSE, nfolds = 10) {
   # Ensure cat_var is a logical
   if (!is.logical(cat_var)) {
     stop("Input 'cat_var' must be a logical (TRUE or FALSE).")
+  }
+  
+  # Ensure standardize is a logical
+  if (!is.logical(standardize)) {
+    stop("Input 'standardize' must be a logical (TRUE or FALSE).")
   }
   
   # If categorical variables are provided, convert them to factors
@@ -61,29 +67,18 @@ fit_lasso <- function(data, cat_var = FALSE, nfolds = 10) {
     X <- cbind(Intercept = 1, model.matrix(~ . - 1, data = data))
   }
   
-  
-  # Fit the Lasso model on the design matrix with alpha = 1 (Lasso penalty)
-  # Make sure it's reproducible
-  set.seed(7)
-  initial_lasso <- glmnet(x = X, y = y, alpha = 1)
-  
   # Perform k-fold cross-validation to find the optimal value of the regularisation 
   #   parameter lambda that minimizes the cross-validation error
-  lasso_cv <- cv.glmnet(x = X, y = y, alpha = 1, nfolds = nfolds)
-  
-  # Plot the regularisation path which is the coefficient profiles of the Lasso model
-  #   as a function of lambda. The vertical line represents the optimal lambda value 
-  #   that minimizes the cross-validation error.
-  #par(mfrow = c(1, 2))
-  #plot(initial_lasso, xvar = "lambda")
-  #abline(v = log(initial_lasso$lambda.min), lwd = 4, lty = 2)
+  set.seed(7)
+  lasso_cv <- cv.glmnet(x = X, y = y, alpha = 1, nfolds = nfolds, standardize = standardize)
   
   # Plot the cross-validation errors as a function of lambda.
   plot(lasso_cv)
   abline(v = log(lasso_cv$lambda.min), lwd = 4, lty = 2)
   
   # Refit the Lasso model using the optimal lambda value obtained from cross-validation
-  lasso_model <- glmnet(x = X, y = y, alpha = 1, lambda = lasso_cv$lambda.min)
+  set.seed(7)
+  lasso_model <- glmnet(x = X, y = y, alpha = 1, lambda = lasso_cv$lambda.min, standardize = standardize)
   
   # Extract the coefficients from the lasso model
   coefficients <- coef(lasso_model, s = lasso_cv$lambda.min)
@@ -101,7 +96,7 @@ fit_lasso <- function(data, cat_var = FALSE, nfolds = 10) {
 
 
 
-#### SIM DATA. ELASTIC-NET PENALISED REGRESSION 'glmnet' ####
+#### ELASTIC-NET PENALISED REGRESSION 'glmnet' ####
 
 # Function to fit Elastic net regression on different datasets and extract the best-fitted model.
 # INPUTS:
@@ -109,15 +104,21 @@ fit_lasso <- function(data, cat_var = FALSE, nfolds = 10) {
 #               The response variable should be named "y".
 #         cat_var - logical factor if there are categorical variables.
 #         nfolds - number of folds for cross-validation (default is 10).
+#         standardize - TRUE or FALSE to standardise data.
 # OUTPUT:
 #         selected_predictors - selected predictor data frame with coefficients.
 #
-fit_elnet <- function(data, cat_var = FALSE, nfolds = 10) {
+fit_elnet <- function(data, cat_var = FALSE, nfolds = 10, standardize = FALSE) {
   
   # Input checks
   # Ensure data is a data.frame
   if (!is.data.frame(data)) {
     stop("Input 'data' must be a data frame.")
+  }
+  
+  # Ensure standardize is a logical
+  if (!is.logical(standardize)) {
+    stop("Input 'standardize' must be a logical (TRUE or FALSE).")
   }
   
   # Ensure 'nfolds' is a function
@@ -163,29 +164,19 @@ fit_elnet <- function(data, cat_var = FALSE, nfolds = 10) {
     # Combine scaled continuous variables, intercept
     X <- cbind(Intercept = 1, model.matrix(~ . - 1, data = data))
   }
-  
-  # Fit the Elastic net model on the design matrix with alpha = 0.5 (L1 + L2 penalties)
-  # Make sure it's reproducible
-  set.seed(7)
-  initial_elnet <- glmnet(x = X, y = y, alpha = 0.5)
 
   # Perform k-fold cross-validation to find the optimal value of the regularization 
   # parameter lambda that minimizes the cross-validation error.
-  elnet_cv <- cv.glmnet(x = X, y = y, alpha = 0.5, nfolds = nfolds)
-  
-  # Plot the regularisation path which is the coefficient profiles of the Elastic net model
-  # as a function of lambda. The vertical line represents the optimal lambda value 
-  # that minimises the cross-validation error.
-  #par(mfrow = c(1, 2))
-  #plot(initial_elnet, xvar = "lambda")
-  #abline(v = log(initial_elnet$lambda.min), lwd = 4, lty = 2)
+  # Make sure it's reproducible
+  set.seed(7)
+  elnet_cv <- cv.glmnet(x = X, y = y, alpha = 0.5, nfolds = nfolds, standardize = standardize)
   
   # Plot the cross-validation errors as a function of lambda.
   plot(elnet_cv)
   abline(v = log(elnet_cv$lambda.min), lwd = 4, lty = 2)
   
   # Refit the Elastic net model using the optimal lambda value obtained from cross-validation.
-  elnet_model <- glmnet(x = X, y = y, alpha = 1, lambda = elnet_cv$lambda.min)
+  elnet_model <- glmnet(x = X, y = y, alpha = 1, lambda = elnet_cv$lambda.min, standardize = standardize)
   
   # Extract the coefficients from the lasso model
   coefficients <- coef(elnet_model, s = elnet_cv$lambda.min)
@@ -204,18 +195,7 @@ fit_elnet <- function(data, cat_var = FALSE, nfolds = 10) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-#### SIM DATA. XGBOOST 'caret' ####
+#### XGBOOST 'caret' ####
 
 # Function to train and evaluate an XGBoost model from 'caret' package on different 
 #   datasets and plot feature importance
@@ -230,7 +210,7 @@ fit_elnet <- function(data, cat_var = FALSE, nfolds = 10) {
 #               model - The trained XGBoost model.
 #               rmse  - The root mean squared error (RMSE) of the model on the test set.
 #
-train_evaluate_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
+fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
   
   # Input validation
   if (!is.data.frame(data)) {
@@ -332,7 +312,7 @@ train_evaluate_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
 
 
 
-#### SIM DATA. SPIKE AND SLAB PRIOR 'spikeslab' #### 
+#### SPIKE AND SLAB PRIOR 'spikeslab' #### 
 
 # Function to fit a Spike and Slab prior model using 'spikeslab' package and 
 #   evaluate it on different datasets. It also plots the path of the 
@@ -422,8 +402,7 @@ fit_spikeslab_prior <- function(data, cat_var = FALSE, bigp_smalln,
   ss_results <- spikeslab::cv.spikeslab(
     # Formula representing the relationship between predictors and response
     #formula,  
-    # The dataset containing the variables in the formula
-    #data = data,   
+    # The matrix containing the variables in the formula
     x = X,
     y = y,
     K = K,
@@ -470,7 +449,7 @@ fit_spikeslab_prior <- function(data, cat_var = FALSE, bigp_smalln,
 
 
 
-#### SIM DATA. SPIKE-AND-SLAB LASSO 'SSLASSO' ####
+#### SPIKE-AND-SLAB LASSO 'SSLASSO' ####
 
 # Function to fit the Spike-and-Slab LASSO model with CONTINUOUS predictors, plot the coefficients,
 # and extract selected variables from a given data frame.
@@ -480,6 +459,7 @@ fit_spikeslab_prior <- function(data, cat_var = FALSE, bigp_smalln,
 #     cat_var - logical factor if there are categorical variables.
 #     lambda1 - Slab variance parameter.
 #     lambda0 - Vector of spike penalty parameters.
+#     var - variance of error, unknown of fixed.
 #     theta - Prior mixing proportion.
 #     eps - Convergence criterion.
 #     plot_width - Width of the plot in inches.
@@ -492,6 +472,7 @@ fit_spikeslab_prior <- function(data, cat_var = FALSE, bigp_smalln,
 #         plot - A plot of the coefficient paths for the fitted model.
 fit_sslasso <- function(data, cat_var = FALSE, lambda1 = 1, 
                         lambda0 = seq(1, nrow(data), ), 
+                        var = "fixed",
                         #theta = 0.5, 
                         eps = 0.001,
                         plot_width = 6, plot_height = 4) {
@@ -576,7 +557,8 @@ fit_sslasso <- function(data, cat_var = FALSE, lambda1 = 1,
   }
   
   # Fit the SSLASSO model
-  result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = "fixed",
+  set.seed(42)
+  result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = var,
                     lambda1 = lambda1, lambda0 = lambda0, warn = TRUE)#, theta = theta)
   
   # Set plot margins (bottom, left, top, right)
@@ -592,14 +574,24 @@ fit_sslasso <- function(data, cat_var = FALSE, lambda1 = 1,
   selected_variables <- result$select
   ever_selected <- apply(selected_variables, 1, max)
   
+  # Assuming X is a data.frame or matrix
+  variable_names <- colnames(X)
+  
+  # selected_variable_indices gives us the indices of the selected variables
+  selected_variable_indices <- which(ever_selected == 1)
+  
+  # Get the names of the selected variables
+  selected_variable_names <- variable_names[selected_variable_indices]
+  
   # Return the results as a list
-  return(list(coefficients = result$beta, ever_selected = ever_selected, plot = result))
+  return(list(coefficients = result$beta, ever_selected = ever_selected, 
+              selected_variable_names = selected_variable_names, plot = result))
 }
 
 
 
 
-#### SIM DATA. HORSESHOE PRIOR. 'horseshoe' ####
+#### HORSESHOE PRIOR. 'horseshoe' ####
 
 # Function to fit the Horseshoe model, plot predicted values against observed values,
 # and plot credible intervals for coefficients.
@@ -617,7 +609,7 @@ fit_sslasso <- function(data, cat_var = FALSE, lambda1 = 1,
 # OUTPUTS:
 #     The fitted horseshoe model.
 #
-fit_hs_horseshoe_model <- function(data, cat_var = FALSE, method.tau, tau = 1, 
+fit_hs_horseshoe <- function(data, cat_var = FALSE, method.tau, tau = 1, 
                                    method.sigma = "Jeffreys", 
                                    burn = 1000, nmc = 5000, thin = 1, alpha = 0.05){
   
@@ -694,6 +686,7 @@ fit_hs_horseshoe_model <- function(data, cat_var = FALSE, method.tau, tau = 1,
   }
   
   # Fit the horseshoe model using the horseshoe package
+  set.seed(42)
   fit_horseshoe <- horseshoe::horseshoe(y = y, X = X, 
                                         method.tau = method.tau,
                                         tau = tau, 
@@ -716,14 +709,26 @@ fit_hs_horseshoe_model <- function(data, cat_var = FALSE, method.tau, tau = 1,
          type = c("p", "g", "g"), ylab = "Coefficients", xlab = "Variables",
          main = "Credible Intervals for Coefficients")
   
+  # Use HS.var.select to get the selected variables
+  selected <- HS.var.select(fit_horseshoe, y = y, method = "intervals", threshold = 0.5)
+  
+  # The variable names for the selected variables
+  variable_names <- colnames(X)
+  
+  # Get the indices of the selected variables
+  selected_indices <- which(selected == 1)
+  
+  # Get the names of the selected variables
+  sel_var <- variable_names[selected_indices]
+  
   # Return the fitted horseshoe model
-  return(fit_horseshoe)
+  return(list(model = fit_horseshoe, sel_var = sel_var))
 }
 
 
 
 
-#### SIM DATA. HORSESHOE PRIOR 'bayesreg' ####
+#### HORSESHOE PRIOR 'bayesreg' ####
 
 # Function to fit the Horseshoe prior (or HS+) model with bayesreg package, 
 #   extract selected variables based on coefficient threshold, and refit 
@@ -740,7 +745,7 @@ fit_hs_horseshoe_model <- function(data, cat_var = FALSE, method.tau, tau = 1,
 # OUTPUTS:
 #     The summary of the refitted horseshoe model with selected variables.
 #
-fit_horseshoe_bs_model <- function(data,
+fit_horseshoe_bs <- function(data,
                                    cat_var = FALSE,
                                    n.samples = 1000, 
                                    burnin = 1000, 
@@ -775,7 +780,7 @@ fit_horseshoe_bs_model <- function(data,
   }
   
   # Ensure 'prior' is a character and contains valid value
-  if (!is.character(prior) || !(prior %in% c("hs", "other_valid_prior"))) {
+  if (!is.character(prior) || !(prior %in% c("hs", "hs+"))) {
     stop("'prior' must be a character and contain a valid value.")
   }
   
@@ -813,6 +818,7 @@ fit_horseshoe_bs_model <- function(data,
   }
 
   # Fit the initial horseshoe model using the bayesreg package
+  set.seed(42)
   fit_horseshoe_b <- bayesreg::bayesreg(y ~ ., data = data, 
                                         # Distribution of the target
                                         model = "gaussian",
@@ -835,13 +841,24 @@ fit_horseshoe_bs_model <- function(data,
     selected_variables <- selected_variables[selected_variables != "cat_var12"]
     
     # Add "cat_var1" and "cat_var2"
-    selected_variables <- c(selected_variables, "cat_var1", "cat_var2")
+    selected_variables <- c(selected_variables, "cat_var1")
+  }
+  
+  # Check if "cat_var12" is in selected_variables
+  if ("cat_var23" %in% selected_variables) {
+    
+    # If yes, remove "cat_var12"
+    selected_variables <- selected_variables[selected_variables != "cat_var23"]
+    
+    # Add "cat_var1" and "cat_var2"
+    selected_variables <- c(selected_variables, "cat_var2")
   }
   
   # Create a formula for the new model using only the selected variables
-  selected_formula <- as.formula(paste("y ~", paste(selected_variables, collapse=" + ")))
+  selected_formula <- as.formula(paste("y ~", paste(selected_variables, collapse = " + ")))
   
   # Fit the new model with the selected variables
+  set.seed(42)
   fit_selected_vars <- bayesreg::bayesreg(selected_formula, data = data, 
                                           model = "gaussian",
                                           prior = prior,
@@ -866,7 +883,7 @@ fit_horseshoe_bs_model <- function(data,
 
 
 
-#### SIM DATA. SSS WITH SCREENING 'BayesS5' ####
+#### SSS WITH SCREENING 'BayesS5' NOT finished ####
 
 # Function to fit a sparse Bayesian linear regression model using the BayesS5 
 #   package. The S5 function is used to fit a model where sparsity is promoted 
@@ -884,7 +901,7 @@ fit_horseshoe_bs_model <- function(data,
 # OUTPUTS:
 #     fit_S5 - An S5 object, which is the fitted model.
 #
-fit_S5_model <- function(data, cat_var = FALSE, ind_fun = ind_fun_pemom,
+fit_S5 <- function(data, cat_var = FALSE, ind_fun = ind_fun_pemom,
                          model = Uniform, tuning = 100,
                          C0 = 2) {
   # Input checks
@@ -921,6 +938,7 @@ fit_S5_model <- function(data, cat_var = FALSE, ind_fun = ind_fun_pemom,
   y <- data[[1]]              # Response vector (first column)
   
   # Fit the model using the S5 function from the BayesS5 package
+  set.seed(42)
   fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun, model = model,
                         tuning = tuning, C0 = C0)
   
@@ -929,12 +947,10 @@ fit_S5_model <- function(data, cat_var = FALSE, ind_fun = ind_fun_pemom,
 }
 
 
-#### SIM DATA. LAPLACE APPROXIMATION 'LaplacesDemon' ####
 
 
-
-
-#### SIM DATA. BAYESIAN LASSO 'monomvn' ####
+#### LAPLACE APPROXIMATION 'LaplacesDemon' NOT finished ####
+#### BAYESIAN LASSO 'monomvn' ####
 
 # Function to fit a Bayesian LASSO regression model using the 'monomvn' package.
 # The function implements cross-validation for hyperparameter tuning and 
@@ -955,14 +971,20 @@ fit_S5_model <- function(data, cat_var = FALSE, ind_fun = ind_fun_pemom,
 #   model - A blasso object, which is the fitted model.
 #   best_lambda2 - The lambda2 value that minimizes the cross-validation error.
 #
-fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb = 1, 
-                             cv_folds = 5, lambda_seq = seq(0.1, 1, by = 0.1)) {
+fit_blasso <- function(data, cat_var = FALSE, T = 1000, RJ = TRUE, verb = 1, 
+                             lambda_seq = c(seq(0.1, 1, by = 0.2), seq(1, 5, 0.5)), threshold = 0.5,
+                             cv_folds = 5) { #lambda2 = 1, 
   
   # Input validation
   # Check if the input data is of the correct format: a data frame
   if (!is.data.frame(data)) {
     # If the input is not a data frame, throw an error and stop execution
     stop("'data' must be a data frame.")
+  }
+  
+  # Ensure cat_var is a logical
+  if (!is.logical(cat_var)) {
+    stop("Input 'cat_var' must be a logical (TRUE or FALSE).")
   }
   
   # Check if the number of iterations 'T' is a positive numeric value
@@ -989,15 +1011,16 @@ fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb =
     stop("'cv_folds' must be a positive numeric value.")
   }
   
+  # Check if the number of cross-validation folds 'cv_folds' is a positive numeric value
+  if (!is.numeric(threshold) || threshold <= 0) {
+    # If 'threshold' is not a positive number, throw an error and stop execution
+    stop("'threshold' must be a positive numeric value.")
+  }
+  
   # Check if the sequence of lambda values 'lambda_seq' is a numeric vector
   if (!is.numeric(lambda_seq)) {
     # If 'lambda_seq' is not a numeric vector, throw an error and stop execution
     stop("'lambda_seq' must be a numeric vector.")
-  }
-  
-  # Ensure cat_var is a logical
-  if (!is.logical(cat_var)) {
-    stop("Input 'cat_var' must be a logical (TRUE or FALSE).")
   }
   
   # If categorical variables are provided, convert them to factors
@@ -1010,15 +1033,17 @@ fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb =
     numeric_vars <- data.frame(scale(data[, -(1:3)])) # All columns except first three
     
     # Combine the non-scaled y, non-scaled categorical variables, and scaled numeric variables
-    data <- data.frame(cbind(data$cat_var1, data$cat_var2, numeric_vars))
+    X <- data.frame(cbind(as.factor(data$cat_var1), 
+                             as.factor(data$cat_var2),
+                             numeric_vars))
     
     # Rename columns 1 and 2
-    colnames(data)[1] <- "cat_var1" 
-    colnames(data)[2] <- "cat_var2"
+    colnames(X)[1] <- "cat_var1" 
+    colnames(X)[2] <- "cat_var2"
     
     # Combine scaled continuous variables, intercept, include categorical as 
     #   dummy variables
-    X <- cbind(Intercept = 1, model.matrix(~ . - 1, data = data))
+    #X <- model.matrix(~ . - 1, data = data)
   }
   
   # If no categorical variables
@@ -1028,10 +1053,10 @@ fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb =
     y <- data$y
     
     # Remove the original categorical variables
-    data <- data.frame(scale(subset(data, select = -y)))
+    X <- data.frame(scale(subset(data, select = -y)))
     
     # Combine scaled continuous variables, intercept
-    X <- cbind(Intercept = 1, model.matrix(~ . - 1, data = data))
+    #X <- model.matrix(~ . - 1, data = data)
   }
   
   # Initialize variables for cross-validation
@@ -1044,6 +1069,8 @@ fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb =
     
     # Cross-validation loop
     for (fold in 1:cv_folds) {
+      # Set a seed for reproducibility
+      set.seed(42)
       # Index for validation set
       val_idx <- ((fold-1)*fold_size+1):(fold*fold_size)
       
@@ -1054,11 +1081,26 @@ fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb =
       y_val <- y[val_idx]
       
       # Fit the model on the training set
-      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, 
-                             RJ = RJ, lambda2 = lambda2, verb = verb)
+      # Set a seed for reproducibility
+      set.seed(42)
+      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, RJ = TRUE, 
+                             lambda2 = lambda2, verb = verb)
       
-      # Make predictions on the validation set
-      y_pred <- X_val %*% fit$beta
+      # Initialize a matrix to hold the predictions for each draw from the posterior
+      y_pred <- matrix(nrow = nrow(X_val), ncol = nrow(fit$beta))
+      
+      # For each draw from the posterior...
+      for (i in 1:nrow(fit$beta)) {
+        # Replicate the coefficients for each observation
+        # Set a seed for reproducibility
+        set.seed(42)
+        beta_rep <- matrix(rep(fit$beta[i, ], nrow(X_val)), nrow = nrow(X_val), byrow = TRUE)
+        
+        # Make predictions using the coefficients from this draw
+        y_pred[, i] <- rowSums(X_val * beta_rep)
+        # Make predictions using the coefficients from this draw
+        #y_pred[, i] <- X_val %*% matrix(fit$beta[i, ], nrow = 1)
+      }
       
       # Compute and store the mean squared error
       cv_errors[i] <- cv_errors[i] + mean((y_val - y_pred)^2) / cv_folds
@@ -1069,30 +1111,46 @@ fit_blasso_model <- function(data, cat_var = FALSE, T = 5000, RJ = FALSE, verb =
   best_lambda2 <- lambda_seq[which.min(cv_errors)]
   
   # Refit the model on the full dataset with the selected lambda2 value
-  fit_blasso <- monomvn::blasso(X = X, y = y, T = T, RJ = RJ, 
-                                lambda2 = best_lambda2, verb = verb)
+  set.seed(42)
+  fit_blasso <- monomvn::blasso(X = X, y = y, lambda2 = best_lambda2, verb = verb)
+  
+  # Save which variables were selected
+  sel_var <- colMeans(abs(fit_blasso$beta)) > threshold
+  
+  # Extract the names of variables selected
+  sel_var <- colnames(X)[selected]
   
   # Return the fitted model and the selected lambda2 value
-  return(list("model" = fit_blasso, "best_lambda2" = best_lambda2))
+  return(list("model" = fit_blasso, "best_lambda2" = best_lambda2, 
+              "sel_var" = sel_var))
 }
 
 
 
-#### SIM DATA. RJMCMC 'rjmcmc' ####
 
 
-#### CRIME. LASSO PENALISED REGRESSION 'glmnet' ####
 
-# Function to fit Lasso regression on Crime data and extract the selected predictors.
+
+
+
+
+
+
+
+#### CRIME ####
+
+#### CRIME LASSO PENALISED REGRESSION 'glmnet' ####
+
+# Function to fit Lasso regression on Crime data and extract the selected predictors
 # INPUTS:
 #         data - a data frame containing the predictors and the response variable.
 #               The response variable should be named "y".
 #         nfolds - number of folds for cross-validation (default is 10).
-#         y - prediction vector.
+#         standardize - TRUE or FALSE to standardise data.
 # OUTPUT:
 #         selected_predictors - selected predictor data frame with coefficients.
 #
-fit_crime_lasso <- function(data, nfolds = 10, y) {
+fit_lasso_crime <- function(data, nfolds = 10, standardize = FALSE) {
   
   # Input checks
   # Ensure data is a data.frame
@@ -1105,20 +1163,48 @@ fit_crime_lasso <- function(data, nfolds = 10, y) {
     stop("'nfolds' must be a positive integer.")
   }
   
-  # Create the matrix of predictors
-  xmatrix <- model.matrix(~ ., data = data[, -ncol(data)])
+  # Create a vector of variable names you want to exclude from the model
+  y <- data$y
   
-  # Fit the Lasso model on the design matrix with alpha = 1 (Lasso penalty).
-  # Note: alpha = 0 corresponds to Ridge and alpha between 0 and 1 corresponds to ElasticNet.
-  initial_lasso <- glmnet(x = xmatrix, y = y, alpha = 1)
+  # Remove the original categorical variables
+  #data <- subset(data, select = -y)
   
-  # Perform k-fold cross-validation to find the optimal value of the regularization 
-  # parameter lambda that minimizes the cross-validation error.
-  lasso_cv <- cv.glmnet(x = xmatrix, y = y, alpha = 1, nfolds = nfolds)
+  # Create a formula string with all other variables
+  all_vars <- setdiff(names(data), "y")
+  formula_str <- paste(" ~ ", paste(all_vars, collapse = " + "), sep = "")
+  
+  # Create your interaction terms separately
+  interaction_terms <- "medIncome*pctWInvInc + medFamInc*PctPopUnderPov + 
+                      PctFam2Par*PctKids2Par + PctPersOwnOccup*PctPersDenseHous + 
+                      PctHousLess3BR*MedNumBR + HousVacant*PctHousOwnOcc + 
+                      PctVacantBoarded*PctHousNoPhone + NumInShelters*NumStreet + 
+                      PctUnemployed*medIncome + pctWPubAsst*medIncome + 
+                      PctPopUnderPov*medIncome + PctLess9thGrade*medIncome + 
+                      PctNotHSGrad*medIncome + TotalPctDiv*PctFam2Par + 
+                      TotalPctDiv*medIncome + PctFam2Par*medIncome + 
+                      NumKidsBornNeverMar*medIncome"
+  
+  # Add the interaction terms to the formula
+  formula_str <- paste(formula_str, "+", interaction_terms)
+  
+  # Create the model matrix
+  X <- model.matrix(as.formula(paste(formula_str, "- 1")), data = data)
+  
+  # Identify interaction columns
+  interaction_cols <- grep("\\*", colnames(X), value = TRUE)
+  
+  # Standardize interaction columns
+  X[, interaction_cols] <- scale(X[, interaction_cols])
+  
+  # Perform k-fold cross-validation to find the optimal value of the regularisation 
+  #   parameter lambda that minimizes the cross-validation error
+  # Make sure it's reproducible
+  set.seed(7)
+  lasso_cv <- cv.glmnet(x = X, y = y, alpha = 1, nfolds = nfolds, standardize = standardize)
   
   # Plot the regularisation path which is the coefficient profiles of the Lasso model
-  # as a function of lambda. The vertical line represents the optimal lambda value 
-  # that minimizes the cross-validation error.
+  #   as a function of lambda. The vertical line represents the optimal lambda value 
+  #   that minimizes the cross-validation error.
   #par(mfrow = c(1, 2))
   #plot(initial_lasso, xvar = "lambda")
   #abline(v = log(initial_lasso$lambda.min), lwd = 4, lty = 2)
@@ -1127,8 +1213,10 @@ fit_crime_lasso <- function(data, nfolds = 10, y) {
   plot(lasso_cv)
   abline(v = log(lasso_cv$lambda.min), lwd = 4, lty = 2)
   
-  # Refit the Lasso model using the optimal lambda value obtained from cross-validation.
-  lasso_model <- glmnet(x = xmatrix, y = y, alpha = 1, lambda = lasso_cv$lambda.min)
+  # Refit the Lasso model using the optimal lambda value obtained from cross-validation
+  # Make sure it's reproducible
+  set.seed(7)
+  lasso_model <- glmnet(x = X, y = y, alpha = 1, lambda = lasso_cv$lambda.min, standardize = standardize)
   
   # Extract the coefficients from the lasso model
   coefficients <- coef(lasso_model, s = lasso_cv$lambda.min)
@@ -1139,27 +1227,31 @@ fit_crime_lasso <- function(data, nfolds = 10, y) {
   # Extract the non-zero coefficients
   selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
   
-  # Return the fitted Lasso model
+  # Name the coefficient column
+  names(selected_predictors) <- "coefficients"
+  
+  # Order the dataframe by the coefficients
+  selected_predictors <- selected_predictors %>% arrange(desc(abs(coefficients)))
+  
+  # Return the selected predictors
   return(selected_predictors)
 }
 
 
 
 
+#### CRIME ELASTIC-NET PENALISED REGRESSION 'glmnet' ####
 
-
-#### CRIME. ELNET PENALISED REGRESSION 'glmnet' ####
-
-# Function to fit Elastic net regression on Crime data and extract the selected predictors.
+# Function to fit Elastic net regression on Crime data and extract the best-fitted model.
 # INPUTS:
 #         data - a data frame containing the predictors and the response variable.
 #               The response variable should be named "y".
 #         nfolds - number of folds for cross-validation (default is 10).
-#         y - prediction vector.
+#         standardize - TRUE or FALSE to standardise data.
 # OUTPUT:
 #         selected_predictors - selected predictor data frame with coefficients.
 #
-fit_crime_elnet <- function(data, nfolds = 10, y) {
+fit_elnet_crime <- function(data, nfolds = 10, standardize = FALSE) {
   
   # Input checks
   # Ensure data is a data.frame
@@ -1172,29 +1264,50 @@ fit_crime_elnet <- function(data, nfolds = 10, y) {
     stop("'nfolds' must be a positive integer.")
   }
   
-  # Create the matrix of predictors
-  xmatrix <- model.matrix(~ ., data = data[, -ncol(data)])
+  # Create a vector of variable names you want to exclude from the model
+  y <- data$y
   
-  # Fit the Elastic Net model on the design matrix with alpha = 0.5 (L1 + L2 penalties)
-  initial_elnet <- glmnet(x = xmatrix, y = y, alpha = 0.5)
+  # Create a formula string with all other variables
+  all_vars <- setdiff(names(data), "y")
+  formula_str <- paste(" ~ ", paste(all_vars, collapse = " + "), sep = "")
   
-  # Perform k-fold cross-validation to find the optimal value of the regularization 
-  # parameter lambda that minimizes the cross-validation error.
-  elnet_cv <- cv.glmnet(x = xmatrix, y = y, alpha = 0.5, nfolds = nfolds)
+  # Create your interaction terms separately
+  interaction_terms <- "medIncome*pctWInvInc + medFamInc*PctPopUnderPov + 
+                      PctFam2Par*PctKids2Par + PctPersOwnOccup*PctPersDenseHous + 
+                      PctHousLess3BR*MedNumBR + HousVacant*PctHousOwnOcc + 
+                      PctVacantBoarded*PctHousNoPhone + NumInShelters*NumStreet + 
+                      PctUnemployed*medIncome + pctWPubAsst*medIncome + 
+                      PctPopUnderPov*medIncome + PctLess9thGrade*medIncome + 
+                      PctNotHSGrad*medIncome + TotalPctDiv*PctFam2Par + 
+                      TotalPctDiv*medIncome + PctFam2Par*medIncome + 
+                      NumKidsBornNeverMar*medIncome"
   
-  # Plot the regularisation path which is the coefficient profiles of the Elastic net model
-  # as a function of lambda. The vertical line represents the optimal lambda value 
-  # that minimises the cross-validation error.
-  #par(mfrow = c(1, 2))
-  #plot(initial_elnet, xvar = "lambda")
-  #abline(v = log(initial_elnet$lambda.min), lwd = 4, lty = 2)
+  # Add the interaction terms to the formula
+  formula_str <- paste(formula_str, "+", interaction_terms)
+  
+  # Create the model matrix
+  X <- model.matrix(as.formula(paste(formula_str, "- 1")), data = data)
+  
+  # Identify interaction columns
+  interaction_cols <- grep("\\*", colnames(X), value = TRUE)
+  
+  # Standardize interaction columns
+  X[, interaction_cols] <- scale(X[, interaction_cols])
+  
+  # Perform k-fold cross-validation to find the optimal value of the regularisation 
+  #   parameter lambda that minimizes the cross-validation error
+  # Make sure it's reproducible
+  set.seed(7)
+  elnet_cv <- cv.glmnet(x = X, y = y, alpha = 0.5, nfolds = nfolds, standardize = standardize)
   
   # Plot the cross-validation errors as a function of lambda.
   plot(elnet_cv)
   abline(v = log(elnet_cv$lambda.min), lwd = 4, lty = 2)
   
-  # Refit the Lasso model using the optimal lambda value obtained from cross-validation.
-  elnet_model <- glmnet(x = xmatrix, y = y, alpha = 1, lambda = elnet_cv$lambda.min)
+  # Refit the elnet model using the optimal lambda value obtained from cross-validation
+  # Make sure it's reproducible
+  set.seed(7)
+  elnet_model <- glmnet(x = X, y = y, alpha = 0.5, lambda = elnet_cv$lambda.min, standardize = standardize)
   
   # Extract the coefficients from the elnet model
   coefficients <- coef(elnet_model, s = elnet_cv$lambda.min)
@@ -1205,29 +1318,35 @@ fit_crime_elnet <- function(data, nfolds = 10, y) {
   # Extract the non-zero coefficients
   selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
   
-  # Return the selected coefficients
+  # Name the coefficient column
+  names(selected_predictors) <- "coefficients"
+  
+  # Order the dataframe by the coefficients
+  selected_predictors <- selected_predictors %>% arrange(desc(abs(coefficients)))
+  
+  # Return the selected predictors
   return(selected_predictors)
 }
 
 
 
 
-#### CRIME. XGBOOST 'caret' ####
 
-# Function to train and evaluate an XGBoost model from 'caret' package on Crimes
+#### CRIME XGBOOST 'caret' ####
+
+# Function to train and evaluate an XGBoost model from 'caret' package on Crime
 #   data and plot feature importance
 # INPUTS:
-#         data - a data frame containing the predictors.
-#         y - the response variable.
+#         data - a data frame containing the predictors and the response variable.
+#                The response variable should be named "y".
 #         xgb_cv   - a trainControl object defining the cross-validation strategy.
 #         xgb_grid - a data frame defining the grid of hyperparameters to search over.
 # OUTPUT:
 #         A list containing:
 #               model - The trained XGBoost model.
 #               rmse  - The root mean squared error (RMSE) of the model on the test set.
-#               coefficients - Coefficients of all predictors.
 #
-fit_crime_xgboost <- function(data, y, xgb_cv, xgb_grid) {
+fit_xgb_crime <- function(data, xgb_cv, xgb_grid) {
   
   # Input validation
   if (!is.data.frame(data)) {
@@ -1246,11 +1365,39 @@ fit_crime_xgboost <- function(data, y, xgb_cv, xgb_grid) {
     stop("xgb_grid should be a data frame with hyperparameters to be tuned, including nrounds, max_depth, and eta.")
   }
   
-  # Separate features and target from the dataset
-  X <- model.matrix(~ ., data = data[, -ncol(data)])
+  # Create a vector of variable names you want to exclude from the model
+  y <- data$y
+  
+  # Create a formula string with all other variables
+  all_vars <- setdiff(names(data), "y")
+  formula_str <- paste(" ~ ", paste(all_vars, collapse = " + "), sep = "")
+  
+  # Create your interaction terms separately
+  interaction_terms <- "medIncome*pctWInvInc + medFamInc*PctPopUnderPov + 
+                      PctFam2Par*PctKids2Par + PctPersOwnOccup*PctPersDenseHous + 
+                      PctHousLess3BR*MedNumBR + HousVacant*PctHousOwnOcc + 
+                      PctVacantBoarded*PctHousNoPhone + NumInShelters*NumStreet + 
+                      PctUnemployed*medIncome + pctWPubAsst*medIncome + 
+                      PctPopUnderPov*medIncome + PctLess9thGrade*medIncome + 
+                      PctNotHSGrad*medIncome + TotalPctDiv*PctFam2Par + 
+                      TotalPctDiv*medIncome + PctFam2Par*medIncome + 
+                      NumKidsBornNeverMar*medIncome"
+  
+  # Add the interaction terms to the formula
+  formula_str <- paste(formula_str, "+", interaction_terms)
+  
+  # Create the model matrix
+  X <- model.matrix(as.formula(paste(formula_str, "- 1")), data = data)
+  
+  # Identify interaction columns
+  interaction_cols <- grep("\\*", colnames(X), value = TRUE)
+  
+  # Standardize interaction columns
+  X[, interaction_cols] <- scale(X[, interaction_cols])
   
   # Split the dataset into training and testing sets
   # createDataPartition helps in creating stratified random samples
+  set.seed(42)
   index <- createDataPartition(y, p = 0.8, list = FALSE)
   X_train <- X[index,]           # Extract training features
   y_train <- y[index]            # Extract training target
@@ -1261,9 +1408,12 @@ fit_crime_xgboost <- function(data, y, xgb_cv, xgb_grid) {
   xgb_model <- train(
     x = X_train,               # Feature matrix
     y = y_train,               # Target vector
-    trControl = cv,            # Cross-validation strategy
-    tuneGrid = grid,           # Grid of hyperparameters to tune
-    method = "xgbTree"         # XGBoost model
+    trControl = xgb_cv,            # Cross-validation strategy
+    tuneGrid = xgb_grid,           # Grid of hyperparameters to tune
+    method = "xgbTree",         # XGBoost model
+    metric = "RMSE",
+    maximize = FALSE,
+    objective = "reg:linear"                    # Specify the learning task and the corresponding learning objective
   )
   
   # Make predictions on the test set using the trained model
@@ -1288,10 +1438,12 @@ fit_crime_xgboost <- function(data, y, xgb_cv, xgb_grid) {
 
 
 
-#### CRIME. SPIKE AND SLAB PRIOR 'spikeslab' ####
 
-# Function to fit a Spike and Slab model using 'spikeslab' package on Crimes data.
-#   It also plots the path of the estimates for the Spike and Slab model.
+#### CRIME SPIKE AND SLAB PRIOR 'spikeslab' #### 
+
+# Function to fit a Spike and Slab prior model using 'spikeslab' package
+#   on Crime data. It also plots the path of the estimates for the Spike 
+#   and Slab model.
 #
 # INPUTS:
 #     data               - A data frame containing the predictors and the response variable.
@@ -1299,14 +1451,13 @@ fit_crime_xgboost <- function(data, y, xgb_cv, xgb_grid) {
 #     bigp_smalln        - A logical indicating if the high-dimensional low sample size adjustments
 #                          should be made. Should be either TRUE or FALSE.
 #     bigp_smalln_factor - A numeric adjustment factor to be used when bigp.smalln is TRUE.
-#     y                  - Prediction variable.
-#     seed               - A NEGATIVE integer used for setting the seed for reproducibility.
+#     seed               - An NEGATIVE integer used for setting the seed for reproducibility.
 #
 # OUTPUT:
-#     A list containing:
-#         result - The fitted Spike and Slab model.
+#     ss_results - The fitted Spike and Slab model.
 #
-fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, seed = -42) {
+fit_spikeslab_prior_crime <- function(data, bigp_smalln, bigp_smalln_factor = 0, 
+                                      screen = FALSE, K = 10, seed = -42) {
   
   # Input validation
   if (!is.data.frame(data)) {
@@ -1325,24 +1476,32 @@ fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, 
     stop("bigp_smalln_factor should be a single numeric value.")
   }
   
-  if (!is.numeric(y) || length(y) != 1) {
-    stop("y should be a single numeric value representing the response variable.")
+  if (!is.logical(screen) || length(screen) != 1) {
+    stop("screen should be a logical value (either TRUE or FALSE).")
   }
   
-  if (!is.numeric(seed) || length(seed) != 1 || seed < 0 || seed != as.integer(seed)) {
-    stop("seed should be a single non-negative integer value.")
+  if (!is.numeric(seed) || length(seed) != 1 || seed > 0 || seed != as.integer(seed)) {
+    stop("seed should be a single negative integer value.")
   }
   
-  # Define the formula for the model
-  # y ~ . indicates that y is the response variable and . represents all other variables as predictors
-  formula <- as.formula("y ~ .")
+  # Extract the target
+  y <- data$y
+  
+  # Remove the original categorical variables
+  data <- subset(data, select = -y)
+  
+  # Combine scaled continuous variables, intercept
+  X <- cbind(Intercept = 0, model.matrix(~ . - 1, data = data))
   
   # Run the spikeslab model
-  result <- spikeslab::spikeslab(
+  ss_results <- spikeslab::cv.spikeslab(
     # Formula representing the relationship between predictors and response
-    formula,  
+    #formula,  
     # The dataset containing the variables in the formula
-    data = data[, -ncol(data)],           
+    #data = data,   
+    x = X,
+    y = y,
+    K = K,
     # The number of iterations in the two MCMC chains used in spikeslab.
     # n.iter1 is for the first chain, and n.iter2 is for the second chain.
     n.iter1 = 1000,        
@@ -1354,6 +1513,8 @@ fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, 
     # bigp.smalln.factor - controls the magnitude of the adjustments.
     bigp.smalln = bigp_smalln,                 
     bigp.smalln.factor = bigp_smalln_factor,   
+    # To screen the variables when p is big
+    screen = screen,
     # Random effects. If specified, adds random effects to the model
     r.effects = NULL,      
     # Maximum number of variables to be retained in the model
@@ -1374,28 +1535,26 @@ fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, 
     seed = seed            
   )
   
-  # Print the result summary
-  print(result)
-  
   # Plot the path of the estimates for the Spike and Slab model
-  plot(result, plot.type = "path")
+  plot(ss_results, plot.type = "path")
   
   # Return the result
-  return(list(result = result))
+  return(ss_results)
 }
 
 
 
-#### CRIME. SPIKE AND SLAB LASSO 'SSLASSO' ####
 
-# Function to fit the Spike-and-Slab LASSO model, plot the coefficients,
+#### CRIME SPIKE-AND-SLAB LASSO 'SSLASSO' ####
+
+# Function to fit the Spike-and-Slab LASSO model with CONTINUOUS predictors, plot the coefficients,
 # and extract selected variables from a given data frame.
 #
 # INPUTS:
 #     data - Data frame where the first column is the response variable, and the rest are predictors.
-#     y - prediction variable.
 #     lambda1 - Slab variance parameter.
 #     lambda0 - Vector of spike penalty parameters.
+#     var - variance of error, unknown of fixed.
 #     theta - Prior mixing proportion.
 #     eps - Convergence criterion.
 #     plot_width - Width of the plot in inches.
@@ -1406,9 +1565,12 @@ fit_crime_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor, y, 
 #         ever_selected - A binary vector indicating which variables were
 #                        ever selected along the regularization path.
 #         plot - A plot of the coefficient paths for the fitted model.
-fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),), 
-                              theta = 0.5, eps = 0.001, plot_width = 6, plot_height = 4) {
-  
+fit_sslasso_crime <- function(data, lambda1 = 1, 
+                        lambda0 = seq(1, nrow(data), ), 
+                        var = "fixed",
+                        #theta = 0.5, 
+                        eps = 0.001,
+                        plot_width = 6, plot_height = 4) {
   # Input checks
   # Check that 'data' is a data frame
   if (!is.data.frame(data)) {
@@ -1423,11 +1585,6 @@ fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),
   # Check that 'lambda0' is a numeric sequence
   if (!is.numeric(lambda0)) {
     stop("'lambda0' must be a numeric sequence.")
-  }
-  
-  # Check that 'theta' is a numeric value between 0 and 1
-  if (!is.numeric(theta) || theta < 0 || theta > 1) {
-    stop("'theta' must be a numeric value between 0 and 1.")
   }
   
   # Check that 'eps' is a small positive numeric value
@@ -1445,9 +1602,14 @@ fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),
     stop("'plot_height' must be a positive numeric value.")
   }
   
+  # Extract the target
+  y <- data$y
   
-  # Separate data into X and y
-  X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
+  # Remove the original categorical variables
+  data <- subset(data, select = -y)
+  
+  # Combine scaled continuous variables, intercept
+  X <- cbind(Intercept = 0, model.matrix(~ . - 1, data = data))
   
   # If lambda0 is not provided, create a sequence
   if (is.null(lambda0)) {
@@ -1455,8 +1617,9 @@ fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),
   }
   
   # Fit the SSLASSO model
-  result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = "fixed",
-                    lambda1 = lambda1, lambda0 = lambda0, theta = theta)
+  set.seed(42)
+  result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = var,
+                    lambda1 = lambda1, lambda0 = lambda0, warn = TRUE)#, theta = theta)
   
   # Set plot margins (bottom, left, top, right)
   par(mar = c(6, 6, 2, 2))
@@ -1471,21 +1634,30 @@ fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),
   selected_variables <- result$select
   ever_selected <- apply(selected_variables, 1, max)
   
+  # Assuming X is a data.frame or matrix
+  variable_names <- colnames(X)
+  
+  # selected_variable_indices gives us the indices of the selected variables
+  selected_variable_indices <- which(ever_selected == 1)
+  
+  # Get the names of the selected variables
+  selected_variable_names <- variable_names[selected_variable_indices]
+  
   # Return the results as a list
-  return(list(coefficients = result$beta, ever_selected = ever_selected, plot = result))
+  return(list(coefficients = result$beta, ever_selected = ever_selected, 
+              selected_variable_names = selected_variable_names, plot = result))
 }
 
 
 
 
-#### CRIME. HORSESHOE PRIOR 'horseshoe' ####
+#### CRIME HORSESHOE PRIOR. 'horseshoe' ####
 
-# Function to fit the Horseshoe prior model, plot predicted values against observed values,
-#   and plot credible intervals for coefficients.
+# Function to fit the Horseshoe model, plot predicted values against observed values,
+# and plot credible intervals for coefficients.
 #
 # INPUTS:
-#     data - Crime dataset.
-#     y - prediction variable.
+#     data - Data frame where the first column is the response variable, and the rest are predictors.
 #     method.tau - Method for handling tau (truncatedCauchy, halfCauchy, or fixed).
 #     tau - The (estimated) value of tau in case "fixed" is selected for method.tau.
 #     method.sigma - Method for handling sigma (Jeffreys or fixed).
@@ -1494,10 +1666,11 @@ fit_crime_sslasso <- function(data, y, lambda1 = 1, lambda0 = seq(1, nrow(data),
 #     thin - Thinning parameter of the chain.
 #     alpha - Level for the credible intervals.
 # OUTPUTS:
-#     fit_horseshoe - The fitted horseshoe model.
+#     The fitted horseshoe model.
 #
-fit_crime_horseshoe_model <- function(data, y, method.tau, tau, method.sigma, 
-                                      burn, nmc, thin, alpha) {
+fit_hs_horseshoe_crime <- function(data, method.tau, tau = 1, 
+                             method.sigma = "Jeffreys", 
+                             burn = 1000, nmc = 5000, thin = 1, alpha = 0.05){
   
   # Input checks
   # Ensure data is a data.frame
@@ -1532,11 +1705,17 @@ fit_crime_horseshoe_model <- function(data, y, method.tau, tau, method.sigma,
     stop("alpha must be a number between 0 and 1.")
   }
   
-  # Separate data into X and y
-  X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
-  X <- cbind(X[, 1], scale(X[, -1], center = TRUE, scale = TRUE))
+  # Extract the target
+  y <- data$y
+  
+  # Remove the original categorical variables
+  data <- subset(data, select = -y)
+  
+  # Combine scaled continuous variables, intercept
+  X <- cbind(Intercept = 0, model.matrix(~ . - 1, data = data))
   
   # Fit the horseshoe model using the horseshoe package
+  set.seed(42)
   fit_horseshoe <- horseshoe::horseshoe(y = y, X = X, 
                                         method.tau = method.tau,
                                         tau = tau, 
@@ -1552,25 +1731,33 @@ fit_crime_horseshoe_model <- function(data, y, method.tau, tau, method.sigma,
        main = "Horseshoe Model: Predicted vs Observed Values")
   
   # Print the posterior mean of tau
-  #cat("Posterior mean of tau:", fit_horseshoe$TauHat, "\n")
-  
-  # Load the Hmisc package for plotting credible intervals
-  #library(Hmisc)
+  cat("Posterior mean of tau:", fit_horseshoe$TauHat, "\n")
   
   # Plot the credible intervals for coefficients
   xYplot(Cbind(fit_horseshoe$BetaHat, fit_horseshoe$LeftCI, fit_horseshoe$RightCI) ~ 1:ncol(X),
          type = c("p", "g", "g"), ylab = "Coefficients", xlab = "Variables",
          main = "Credible Intervals for Coefficients")
   
+  # Use HS.var.select to get the selected variables
+  selected <- HS.var.select(fit_horseshoe, y = y, method = "intervals", threshold = 0.5)
+  
+  # The variable names for the selected variables
+  variable_names <- colnames(X)
+  
+  # Get the indices of the selected variables
+  selected_indices <- which(selected == 1)
+  
+  # Get the names of the selected variables
+  sel_var <- variable_names[selected_indices]
+  
   # Return the fitted horseshoe model
-  return(fit_horseshoe)
+  return(list(model = fit_horseshoe, sel_var = sel_var))
 }
 
 
 
 
-
-#### CRIME. HORSESHOE PRIOR 'bayesreg' ####
+#### CRIME HORSESHOE PRIOR 'bayesreg' ####
 
 # Function to fit the Horseshoe prior (or HS+) model with bayesreg package, 
 #   extract selected variables based on coefficient threshold, and refit 
@@ -1587,12 +1774,11 @@ fit_crime_horseshoe_model <- function(data, y, method.tau, tau, method.sigma,
 #     The summary of the refitted horseshoe model with selected variables.
 #
 fit_horseshoe_bs_crime <- function(data,
-                                   y,
-                                   n.samples = 1000, 
-                                   burnin = 1000, 
-                                   thin = 5, 
-                                   coef_threshold = 1,
-                                   prior = "hs") {
+                             n.samples = 1000, 
+                             burnin = 1000, 
+                             thin = 5, 
+                             coef_threshold = 1,
+                             prior = "hs") {
   
   # Input checks
   # Ensure data is a data.frame
@@ -1620,18 +1806,15 @@ fit_horseshoe_bs_crime <- function(data,
     stop("'coef_threshold' must be a positive numeric.")
   }
   
-  # Separate data into X and y
-  X <- model.matrix(~ ., data = data[, -ncol(data)])  # Design matrix (excluding the y column)
-  X <- cbind(Intercept = X[, 1], scale(X[, -1], center = TRUE, scale = TRUE))
-  
-  # Combine standardized predictors and response variable into a new data frame
-  data_std <- cbind(y, as.data.frame(X))
-  
-  # Formula to fit the model (assuming that y is the name of your response variable)
-  formula <- as.formula(paste("y ~", paste(colnames(X)[-1], collapse = " + ")))
+  # Ensure 'prior' is a character and contains valid value
+  if (!is.character(prior) || !(prior %in% c("hs", "hs+"))) {
+    stop("'prior' must be a character and contain a valid value.")
+  }
   
   # Fit the initial horseshoe model using the bayesreg package
-  fit_horseshoe_b <- bayesreg::bayesreg(formula, data = data_std, 
+  set.seed(42)
+  fit_horseshoe_b <- bayesreg::bayesreg(y ~ ., data = data, 
+                                        # Distribution of the target
                                         model = "gaussian",
                                         prior = prior,
                                         n.samples = n.samples,
@@ -1646,9 +1829,10 @@ fit_horseshoe_bs_crime <- function(data,
   selected_variables <- names(coefficients)
   
   # Create a formula for the new model using only the selected variables
-  selected_formula <- as.formula(paste("y ~", paste(selected_variables, collapse=" + ")))
+  selected_formula <- as.formula(paste("y ~", paste(selected_variables, collapse = " + ")))
   
   # Fit the new model with the selected variables
+  set.seed(42)
   fit_selected_vars <- bayesreg::bayesreg(selected_formula, data = data, 
                                           model = "gaussian",
                                           prior = prior,
@@ -1670,7 +1854,10 @@ fit_horseshoe_bs_crime <- function(data,
 
 
 
-#### CRIME. SSS 'BayesS5' ####
+
+
+
+#### CRIME SSS WITH SCREENING 'BayesS5' NOT finished ####
 
 # Function to fit a sparse Bayesian linear regression model using the BayesS5 
 #   package. The S5 function is used to fit a model where sparsity is promoted 
@@ -1679,7 +1866,6 @@ fit_horseshoe_bs_crime <- function(data,
 # INPUTS:
 #     data - Data frame where the first column is the response variable, 
 #            and the remaining columns are predictors.
-#     y - Target variable.
 #     ind_fun - A function to define the inclusion indicators of the model.
 #     model - An object of class Model defining the prior distribution.
 #     tuning - Tuning parameter for the S5 function.
@@ -1688,19 +1874,14 @@ fit_horseshoe_bs_crime <- function(data,
 # OUTPUTS:
 #     fit_S5 - An S5 object, which is the fitted model.
 #
-fit_S5_crime <- function(data, y, ind_fun = ind_fun_pemom,
-                         model = Bernoulli_Uniform, tuning = 20,
-                         C0 = 5) {
+fit_S5_crime <- function(data, ind_fun = ind_fun_pemom,
+                   model = Uniform, tuning = 100,
+                   C0 = 2) {
   # Input checks
   
   # Ensure data is a data.frame
   if (!is.data.frame(data)) {
     stop("Input 'data' must be a data frame.")
-  }
-  
-  # Ensure y is a numeric vector 
-  if (!is.vector(y) && !is.numeric(y)) {
-    stop("Input 'y' must be a numeric vector.")
   }
   
   # Ensure 'ind_fun' is a function
@@ -1725,17 +1906,12 @@ fit_S5_crime <- function(data, y, ind_fun = ind_fun_pemom,
     stop("'C0' must be a positive numeric value.")
   }
   
-  # Scale data and create a matrix
-  #X <- scale(model.matrix(~ . - 1, data = data[, -ncol(data)]), 
-  #           center = TRUE, scale = TRUE)
-  
   # Separate data into X and y
-  X <- model.matrix(~ . - 1, data = data[, -ncol(data)])  # Design matrix (excluding the y column)
-  
-  # Rename the columns
-  colnames(X) <- paste0("X", 1:ncol(X))
+  X <- as.matrix(data[, -1])  # Design matrix (excluding the y column)
+  y <- data[[1]]              # Response vector (first column)
   
   # Fit the model using the S5 function from the BayesS5 package
+  set.seed(42)
   fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun, model = model,
                         tuning = tuning, C0 = C0)
   
@@ -1746,8 +1922,12 @@ fit_S5_crime <- function(data, y, ind_fun = ind_fun_pemom,
 
 
 
-#### CRIME. LAPLACE APPROXIMATION 'LaplacesDemon' ####
-#### CRIME. BAYESIAN LASSO 'monomvn' ####
+#### CRIME LAPLACE APPROXIMATION 'LaplacesDemon' NOT finished ####
+
+
+
+
+#### CRIME BAYESIAN LASSO 'monomvn' ####
 
 # Function to fit a Bayesian LASSO regression model using the 'monomvn' package.
 # The function implements cross-validation for hyperparameter tuning and 
@@ -1756,7 +1936,6 @@ fit_S5_crime <- function(data, y, ind_fun = ind_fun_pemom,
 # INPUTS:
 #   data - Data frame where the first column is the response variable, 
 #         and the remaining columns are predictors.
-#   y - Target variable.
 #   T - Number of iterations in the MCMC chain.
 #   RJ - Logical flag indicating whether to perform Reversible Jump MCMC.
 #   verb - Verbosity level of the function's output.
@@ -1768,8 +1947,9 @@ fit_S5_crime <- function(data, y, ind_fun = ind_fun_pemom,
 #   model - A blasso object, which is the fitted model.
 #   best_lambda2 - The lambda2 value that minimizes the cross-validation error.
 #
-fit_blasso_crime <- function(data, y, T = 1000, RJ = FALSE, verb = 1, 
-                             cv_folds = 1, lambda_seq = 0.8) {
+fit_blasso <- function(data, T = 1000, RJ = TRUE, verb = 1, 
+                       lambda_seq = c(seq(0.1, 1, by = 0.2), seq(1, 5, 0.5)), threshold = 0.5,
+                       cv_folds = 5) { #lambda2 = 1, 
   
   # Input validation
   # Check if the input data is of the correct format: a data frame
@@ -1777,7 +1957,7 @@ fit_blasso_crime <- function(data, y, T = 1000, RJ = FALSE, verb = 1,
     # If the input is not a data frame, throw an error and stop execution
     stop("'data' must be a data frame.")
   }
-  
+ 
   # Check if the number of iterations 'T' is a positive numeric value
   if (!is.numeric(T) || T <= 0) {
     # If 'T' is not a positive number, throw an error and stop execution
@@ -1802,15 +1982,29 @@ fit_blasso_crime <- function(data, y, T = 1000, RJ = FALSE, verb = 1,
     stop("'cv_folds' must be a positive numeric value.")
   }
   
-  # Check if the sequence of lambda values 'lambda_seq' is a numeric vector
-  #if (!is.numeric(lambda_seq)) {
-  #  # If 'lambda_seq' is not a numeric vector, throw an error and stop execution
-  #  stop("'lambda_seq' must be a numeric vector.")
-  #}
+  # Check if the number of cross-validation folds 'cv_folds' is a positive numeric value
+  if (!is.numeric(threshold) || threshold <= 0) {
+    # If 'threshold' is not a positive number, throw an error and stop execution
+    stop("'threshold' must be a positive numeric value.")
+  }
   
-  # Scale data and create a matrix
-  X <- scale(model.matrix(~ . - 1, data = data[, -ncol(data)]), 
-             center = TRUE, scale = TRUE)
+  # Check if the sequence of lambda values 'lambda_seq' is a numeric vector
+  if (!is.numeric(lambda_seq)) {
+    # If 'lambda_seq' is not a numeric vector, throw an error and stop execution
+    stop("'lambda_seq' must be a numeric vector.")
+  }
+    
+    # Extract the target
+    y <- data$y
+    
+    # Remove the original categorical variables
+    X <- data.frame(scale(subset(data, select = -y)))
+    
+    # Combine scaled continuous variables, intercept
+    #X <- model.matrix(~ . - 1, data = data)
+  
+  # Set a seed for reproducibility
+  set.seed(42)
   
   # Initialize variables for cross-validation
   cv_errors <- rep(0, length(lambda_seq))
@@ -1831,13 +2025,23 @@ fit_blasso_crime <- function(data, y, T = 1000, RJ = FALSE, verb = 1,
       X_val <- X[val_idx, ]
       y_val <- y[val_idx]
       
-      
       # Fit the model on the training set
-      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, thin = 10, M = ncol(X), 
-                             RJ = FALSE, lambda2 = 0.8, verb = verb)
+      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, RJ = TRUE, 
+                             lambda2 = lambda2, verb = verb)
       
-      # Make predictions on the validation set
-      y_pred <- X_val %*% fit$beta
+      # Initialize a matrix to hold the predictions for each draw from the posterior
+      y_pred <- matrix(nrow = nrow(X_val), ncol = nrow(fit$beta))
+      
+      # For each draw from the posterior...
+      for (i in 1:nrow(fit$beta)) {
+        # Replicate the coefficients for each observation
+        beta_rep <- matrix(rep(fit$beta[i, ], nrow(X_val)), nrow = nrow(X_val), byrow = TRUE)
+        
+        # Make predictions using the coefficients from this draw
+        y_pred[, i] <- rowSums(X_val * beta_rep)
+        # Make predictions using the coefficients from this draw
+        #y_pred[, i] <- X_val %*% matrix(fit$beta[i, ], nrow = 1)
+      }
       
       # Compute and store the mean squared error
       cv_errors[i] <- cv_errors[i] + mean((y_val - y_pred)^2) / cv_folds
@@ -1848,17 +2052,19 @@ fit_blasso_crime <- function(data, y, T = 1000, RJ = FALSE, verb = 1,
   best_lambda2 <- lambda_seq[which.min(cv_errors)]
   
   # Refit the model on the full dataset with the selected lambda2 value
-  fit_blasso <- monomvn::blasso(X = X, y = y, T = T, RJ = RJ, 
-                                lambda2 = best_lambda2, verb = verb)
+  set.seed(42)
+  fit_blasso <- monomvn::blasso(X = X, y = y, lambda2 = best_lambda2, verb = verb)
+  
+  # Save which variables were selected
+  sel_var <- colMeans(abs(fit_blasso$beta)) > threshold
+  
+  # Extract the names of variables selected
+  sel_var <- colnames(X)[selected]
   
   # Return the fitted model and the selected lambda2 value
-  return(list("model" = fit_blasso, "best_lambda2" = best_lambda2))
+  return(list("model" = fit_blasso, "best_lambda2" = best_lambda2, 
+              "sel_var" = sel_var))
 }
 
 
 
-
-#### CRIME. RJMCMC 'rjmcmc' ####
-
-# Could we maybe fit models with the most important variables that 
-#   were identified in previous methods?

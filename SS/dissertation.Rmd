@@ -1,0 +1,816 @@
+---
+# title: "**Variable Selection in High-Dimensionality Data Within the Bayesian Framework**"
+highlight: tango
+# geometry: margin=1.9cm
+fontsize: 11pt
+output: 
+  pdf_document: 
+      fig_caption: yes
+      keep_tex: yes
+      number_sections: true
+header-includes: \usepackage{float}
+                 \usepackage{setspace}
+---
+
+\onehalfspacing
+
+\begin{center}
+    {\Large \textbf{Abstract - rewrite}}
+\end{center}
+
+\vspace{0.5cm}
+
+\noindent 
+**NOTES**
+\
+Some methodologies might not be used in the end, thus, delete them, or provide the backbone info only.
+\
+\
+If the real data set has guidance on what is important in the actual predictions, it would potentially allow to use RJMCMC package, as it requires to specify a few models only. 
+\
+Hence, WAIC could be utilised too.
+\
+\
+**Methods used:**
+\
+Freq. Lasso
+\
+Freq. Elastic Net
+\
+ML XGboost
+\
+Bayes. Spike and Slab Prior
+\
+Bayes. Horsehoe Prior (two packages)
+\
+Bayes. Horseshoe Prior +
+\
+Bayes. Spike and Slab Lasso
+\
+Bayes. Bayesian Lasso
+\
+Bayes. Laplace Approximation
+\
+Bayes. Shotgun Stochastic Search
+\
+\
+For the Abstract:
+\
+Rewrite completely.
+\
+**Include result summary!**
+\
+\
+\
+\
+This study aims to introduce the difficulties of model selection in the Bayesian Inference setting, in particular, in high-dimensionality setting using R software. The following are discussed: comparison of model selection methods in both simulated and simple real data. The focus lies within xx method and variable shrinkage approach. Linear models are used. Methodology compared to frequentist methods and one selected Machine Learning method to set a familiar baseline. 
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Acknowledgements}
+
+XX
+
+\newpage
+
+\section{List of Figures and Tables}
+\
+Would be nice to include.
+\
+\newpage
+
+\section{Introduction}
+  \subsection{Personal Interest}
+    
+The motivation to delve into the intricacies of the Bayesian statistical framework was kindled by Nobel laureate Daniel Kahneman’s seminal book “Thinking Fast and Slow”. Kahneman’s dissection of human cognitive biases and flawed decision-making, especially in ambiguous situations, characterises System 1 thinking as heuristic-driven, low-cost, and low-effort which often results in pitfalls of emotionally induced biases. It is posited that the Bayesian methodology parallels System 2 thinking, where initial prior beliefs are systematically updated with new evidence, considering the strength of the information. The Bayesian approach provides an explicit mathematical framework for handling uncertainty, counterbalancing overconfidence and confirmation bias by quantifying uncertainties in light of new evidence.
+
+  \subsection{Basis of Bayesian Statistics. Concept Comparison: Bayesian Against Frequentist}
+        
+Bayesian statistics employs probability distributions, constructed using probability theory, to describe the "degree of belief". Its strengths and weaknesses simultaneously lie in the flexible incorporation of background information. Arguably, it presents a more organic approach to scientific reasoning, as compared to frequentist methods, by continually updating probability distributions with new data. Focusing solely on the likelihood of data under specific hypotheses, without incorporating prior beliefs, leads to an inference process that is perhaps rigid and lacks the capability for iterative updating of beliefs. This is particularly advantageous when data is scarce or hard to acquire, the use of prior information might be the only option. Even with a non-informative prior, Bayesian methodology yields a distribution, in contrast to the classical approach's point estimate, making it more intuitively understandable. 
+
+  \subsection{Motivation}
+
+In high-dimensional data settings, it is desirable to impose a low-dimensional structure like sparsity. For instance, in astronomy and image processing, thousands of noisy pixel observations may exist, but only a small subset is typically required to identify the objects of interest (Johnstone & Silverman, 2004). Meanwhile, in medical research involving rare diseases or novel treatments, there is often a scarcity of data, i.e. data points. In those instances, the Central Limit Theorem of normality (CLT) is sometimes inappropriately invoked to make assumptions about the underlying distribution of the data, despite insufficient sample sizes for the theorem to hold accurately. 
+
+This thesis investigates high-dimensionality settings in both simulated data, where the number of predictors is smaller, equal, greater or even much greater than the number of data points, and real data with a large number of predictors and a larger number of data points. Both will allow to explore issues in high dimensionality.
+
+The aims of this thesis extend beyond applying and comparing a variety of Bayesian variable selection methods. Equally important is the personal understanding and exploration of this statistical framework, which had remained unexplored in my prior studies. Hence, this document delivers a somewhat more extensive description of the methods, blending theory with application, to foster both a deep understanding of the methodology and its practical testing.
+
+  \subsection{Structure of Thesis}
+
+**Structure will change!!!**
+\
+This thesis is structured as follows: Chapter 1 introduced a succinct overview of dissertation coupled with a reflection on personal interests. Chapter 2 delves into a more detailed and formally-structured motivation for variable selection in high-dimensional setting. Chapter 3 lays the foundation of Bayesian inference theory. Chapter 4 specifically overviews the variable selection methods within the Bayesian framework providing mathematical scaffolding and application-motivated package overview in R. Chapters 5 and 6 explore the application of variable and model selection in simulated and real high-dimensional data, with focus on methods that utilise shrinkage priors and penalised regression techniques. Finally, Chapter 7 provides the discussion of the analysis and findings.
+
+\section{Building Blocks: Theoretical Framework}
+
+This thesis focuses on parametric models, characterised by a finite number of parameters independent of the sample size, belonging to parameterised family of distributions. In contrast, non-parametric models allow for an adaptable number of parameters as the sample size expands. Model complexity is reflected by the number of parameters.
+
+To begin, the steps involved in Bayesian inference are outlined to facilitate familiarity with the concepts:
+
+
+1.	*Development of a full Probability Model*: a joint probability distribution encompassing all observable and latent variables are formulated. Ensure that the model is consistent with the prevailing understanding of the scientific problem and the data collection procedure.
+
+
+2.	*Conditioning on Observed Data*: the posterior distribution is computed and analysed. This distribution represents the conditional probability of the latent variables of interest, given the observed data.
+
+
+3.	*Assessment of Model Fit and Posterior Distribution Implications*: the model is evaluated, as are the plausibility of the substantive conclusions derived from the posterior distribution. Examine the robustness of the conclusions and the sensitivity of the results to the initial modelling assumptions. If necessary, modify or extend the model and iterate through the steps again.
+
+
+  \subsection{Prior Distribution}
+  
+The following three sub-chapters are heavily based on Joseph C. Watkins “Theory of Statistics” lecture notes from University of Arizona. 
+
+Firstly, a realisation of random variables on a sample space $X$ is observed, represented as 
+
+\begin{equation}
+X(s) = (X_1(s), ..., X_n(s)),
+\end{equation}
+
+where each $X_i$ shares the same distribution. The allowable distributions are typically restricted to a class $P$. If these distributions can be indexed by a set $\Omega \subset \mathbb{R}^d$, then $P$ is termed a parametric family. The indexing is usually set up to ensure identifiability, i.e., the mapping from $\Omega$ to $P$ is bijective. For a chosen parameter $\theta \in \Omega$, the distribution of the observations and the expectation are denoted by $P_\theta$ and $E_\theta$, respectively.
+
+  
+As mentioned in Chapters above, *prior distribution* can be informed using additional data, expert knowledge, elicitation techniques, or sometimes, it may be challenging to define. (mention uninformative priors)
+In Bayesian statistics, $(X, \Theta)$ is considered as a pair of random variables with an associated state space $X \times \Omega$. The distribution, $\mu$ of $\Theta$ over $\Omega$, is called the *prior distribution*. The joint distribution of $(X, \Theta)$ is determined by the prior distribution in conjunction with the family $\{P_\theta : \theta \in \Omega\}$:
+\begin{equation}
+\Pr\{(X,\Theta) \in B\} = \int \int I_B(x,\theta) \mu_{X|\Theta}(dx|\theta) \mu_{\Theta}(d\theta).
+\end{equation}
+Here, $\mu_{X|\Theta}(\cdot|\theta)$ represents the distribution of $X$ under $P_{\theta}$.
+
+  \subsection{Bayes’ Theorem and Posterior Distribution}
+  
+Consider the scenario where $\mu_{\Theta}$ has density $f_{\Theta}$ and $\mu_{X|\Theta}(\cdot|\theta)$ has density $f_{X|\Theta}$ with respect to the Lebesgue measure. The probability is then:
+\begin{equation}
+\Pr\{(X,\Theta) \in B\} = \int\int I_B(x,\theta)f_{X|\Theta}(x|\theta)f_{\Theta}(\theta) \,dx \,d\theta.
+\end{equation}
+The Lebesgue measure, here, serves as a standard way of assigning a length, area, or volume to subsets of a Euclidean space and is fundamental in integration theory.
+\
+After observing $X = x$, the conditional density of $\Theta$ given $X = x$ using *Bayes' theorem*, the *posterior distribution* $f_{\Theta|X}(\theta|x)$ is given as:
+
+\begin{equation}
+f_{\Theta|X}(\theta|x) = \frac{f_{X|\Theta}(x|\theta) \cdot f_{\Theta}(\theta)} {\int_{\Omega} f_{X|\Theta}(x|t) \cdot f_{\Theta}(t) \, dt}.
+\end{equation}
+
+The term $f_{X|\Theta}(x|\theta)$ is the likelihood of observing $X = x$ given $\Theta = \theta$, and $f_{\Theta}(\theta)$ is the prior density of $\Theta$. The denominator represents the marginal likelihood of $X = x$, which acts as a normalising constant to ensure that the posterior density integrates to 1.
+
+The likelihood function $f_{X|\Theta}(x|\theta)$ evaluates how probable the observed data $x$ is under various parameter values $\theta$. Unlike the *prior distribution*, the likelihood function depends solely on the data and quantifies the support it provides for various parameter values. It is important to note that the likelihood function is not a probability distribution over $\theta$. Instead, it quantifies the support the data provides for different values of $\theta$. 
+At this point it is also important to mention that Bayesian inference obeys the Likelihood principle, according to which, different probability models that produce the same likelihood for the data should result in the same inference for the parameter $\theta$. The data only influence the posterior through the likelihood function $f(x|\theta)$, while the prior remains independent of the data. Experimental variations are irrelevant for inference about $\theta$.
+
+The posterior distribution synthesises all available information regardinf the parameter of interest. However, deriving analytical summaries, such as mean or variance, of the posterior distribution often requires evaluating complex integrals. This can be especially challenging for high-dimensional posterior distributions. Monte Carlo integration, a simulation technique, offers an effective solution for estimating these integrals. Within Monte Carlo integration, Markov Chain Monte Carlo (MCMC) methodology is a powerful tool for approximating posterior summary statistics, the application of this methodology will be defined in Chapter XX.
+
+\section{The Setting}
+\subsection{Linear Regression in High-Dimensional Setting}
+
+The multivariate linear regression model is described as follows:
+
+\begin{equation}
+\mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}, \quad \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \sigma^2\mathbf{I}_n)
+\end{equation}
+
+In this setup, $\mathbf{Y} \in \mathbb{R}^n$ is a response vector, $\mathbf{X} = [\mathbf{X}_1, ..., \mathbf{X}_p] \in \mathbb{R}^{n \times p}$ is the given design matrix comprising of $p$ potential predictors. The vector $\boldsymbol{\beta} = (\beta_1, ..., \beta_p)^T \in \mathbb{R}^p$ represents the set of regression coefficients that will be estimated. Lastly, $\boldsymbol{\epsilon} \in \mathbb{R}^n$ is the noise vector, constituted by independently distributed normal random variables, each sharing a common, but unknown variance $\sigma^2$. 
+\
+**MENTION HIGH-DIM**
+
+  \subsection{Variable Selection}
+
+In situations where the vector of regression coefficients $\beta$ is very large (p >> n), as is the case in the context of this thesis, the vector of regression coefficients $\beta$ can be very large and sparse (i.e., most elements are zero or neglible). Identifying the significant elements of $\beta$ - a problem known as variable selection - becomes crucial (Moran et al., 2019). Variable selection in high-dimensional settings is essential for constructing parsimonious models that are not only interpretable but also less prone to overfitting. The options are to assess which is “best” according to some criterion. 
+
+In Bayesian analysis, a Gaussian likelihood for $\mathbf{y}$ is commonly employed, predicated on the normal distribution of errors:
+
+\begin{equation}
+\mathbf{y} | (\mathbf{X}, \boldsymbol{\beta}) \sim \mathcal{N}(\mathbf{X}\boldsymbol{\beta}, \sigma^2\mathbf{I}).
+\end{equation}
+
+For variable selection, binary indicators $\gamma_j$ are defined to identify the non-zero elements of $\boldsymbol{\beta}$.
+\
+**WRITE EXPRESSION FOR BAYESIAN MODEL EXPLICITLY?**
+
+\section{Methodology}
+  \subsection{Variable Selection within Frequentist Framework}
+    
+To provide a comprehensive perspective in this thesis, a comparison will be drawn between the classical statistical methods of variable selection, one machine learning method, and some traditional and more modern Bayesian techniques. The output of Bayesian analysis can often be more intuitive to interpret than the output of a frequentist analysis. Posterior distributions provide a probability distribution for each parameter, which tells what values are plausible given the data and the model. In the classical approach to statistical analysis, variable selection typically hinges on point estimates of parameters, which are then subjected to hypothesis testing to determine their significance (Krantz, 1999). Notably, a *p-value*, standing alone, does not constitute a robust measure of evidence in support of a particular model or hypothesis, which may lead to misinterpretation (often among non-statisticians) around direct evidence about the null hypothesis (Tanha et al., 2017).
+
+  \subsubsection{AIC}
+  
+**The sections about AIC DIC and WAIC should be a lot shorter as these methods might not even be used in the end**
+    
+The following section relies on “Bayesian Data Analysis”, 3rd Edition by Gelman et al.
+
+
+The concept of Akaike Information Criterion must first be introduced in order to establish a foundation for understanding several subsequent criteria in Bayesian Inference, and to enable comparisons among them. AIC favours models with good predictive capabilities, penalising those with more parameters, thereby discouraging overfitting.
+
+In statistical literature, inference for $\theta$ is typically summarised using a point estimate, $\hat{\theta}$, rather than the full posterior distribution. Often, the maximum likelihood estimate (MLE) is used as this point estimate. A common approach for calculating out-of-sample predictive accuracy involves using the log posterior density of the observed data $y$ given the point estimate, $\log p(y|\hat{\theta})$, and correcting for overfitting bias. When $k$ represents the number of estimated parameters, the bias correction is performed by subtracting $k$ from the log predictive density based on the MLE, according to the formula:
+
+\begin{equation}
+\widehat{elpd}_{\text{AIC}} = \log p(y|\hat{\theta}_{\text{mle}}) - k.
+\end{equation}
+
+*AIC* is then defined as twice the negative of this quantity:
+
+\begin{equation}
+\text{AIC} = -2 \log p(y|\hat{\theta}_{\text{mle}}) + 2k.
+\end{equation}
+
+Though *AIC's* bias correction is applicable in normal linear models with known variance and uniform priors, it is not adequate in Bayesian models. In such cases, the penalty of $k$ simply does not accurately represent the effective number of parameters. Hence, other criteria is introduced.
+
+  \subsubsection{Penalised Regression Methods}
+
+In penalised regression methods, a penalty term is added to the log-likelihood function to enforce a trade-off between bias and variance in regression coefficients, consequently optimising prediction error. 
+
+\textbf{Least Absolute Shrinkage and Selection Operator (LASSO)} incorporates the *L1-norm* of regression coefficients (excluding the intercept) as the penalty term:
+
+\begin{equation}
+- \log L + \lambda \sum_{j=1}^{p} |\beta_j|, \quad \lambda > 0.
+\end{equation}
+
+This not only shrinks coefficients toward zero but also sets those with negligible predictive contribution to zero, serving as an embedded feature selection method. When the number of predictors, $p$, exceeds the number of observations, $n$, *LASSO* selects at most $n$ variables. *LASSO* does not group predictors, often selecting one from a group of highly correlated predictors arbitrarily.
+
+  
+\textbf{Ridge regression} employs the *L2-norm* of regression coefficients (excluding the intercept) as the penalty:
+
+\begin{equation}
+- \log L + \lambda \sum_{j=1}^{p} \beta_j^2, \quad \lambda > 0.
+\end{equation}
+
+*Ridge regression* shrinks coefficients towards zero but retains all predictors in the model. When $n > p$ and there is high multicollinearity, *Ridge regression* often offers superior predictions. Note that since the penalty term is the sum of squared coefficients, shrinkage would not be fair across predictors with different scales, hence, they need to be standardised.
+
+\textbf{Elastic Net} combines the *L1-norm* and *L2-norm* penalties:
+
+\begin{equation}
+- \log L + \lambda_1 \sum_{j=1}^{p} |\beta_j| + \lambda_2 \sum_{j=1}^{p} \beta_j^2, \quad \lambda_1, \lambda_2 > 0.
+\end{equation}
+
+This can also be expressed as:
+
+\begin{equation}
+\lambda \left( \alpha \sum_{j=1}^{p} |\beta_j| + \frac{1-\alpha}{2} \sum_{j=1}^{p} \beta_j^2 \right), \quad \lambda > 0, \ 0 \leq \alpha \leq 1.
+\end{equation}
+
+Here, $\alpha$ controls the mixing of *LASSO* and *Ridge* penalties, and $\lambda$ regulates the overall strength of regularisation.
+\
+
+**Application**
+
+The **glmnet** package in R provides efficient procedures for fitting generalised linear and similar models using penalised maximum likelihood, allowing for lasso or elastic-net regularisation with a spectrum of lambda values, and includes capabilities for prediction, plotting, and cross-validation, even for sparse datasets.
+
+```{r penalisation graphics, fig.align="center", message=FALSE, echo = FALSE, warning=FALSE, echox=FALSE, out.width="1\\linewidth", fig.cap = "Penalised Regression"}
+library(knitr)
+include_graphics("~/Documents/Dissertation/text/reg_pen.png")
+```
+
+  \subsection{Variable Selection in Machine Learning. XGBoost}
+
+Note:
+\
+**Including a graph comparing Ensemble tree models and boosted models would be nice**
+
+In the exploration of variable selection methods, a comparison between frequentist and Bayesian inference approaches with a renowed machine learning method *XGBoost*  would offer valuable insights. *XGBoost*, often cited for its outstanding performance in Kaggle competitions, incorporates a feature importance mechanism, which, in simple terms, quantifies the contribution of individual attributes to the construction of decision trees within the ensemble (Chen & Guestrin, 2016).
+
+*XGBoost's* boasts exceptional scalability, enabling rapid processing on single machines and adept scaling to billions of examples in memory-constrained environments. As a comprehensive tree boosting system, it introduces innovations such as a sparsity-aware algorithm for sparse data and a theoretically grounded weighted quantile sketch for handling instance weights, effectively streamlining resource employment in processing large datasets (Chen & Guestrin, 2016).
+
+The following methodology is heavily based on (Wang et al., 2019):
+
+In this thesis, *XGBoost* model is first classified based on all features, secondly, all the importances of feature variables are computed, then sorted in descending order based on their information in the generated model process. Lastly, the filtered features are inputed into the classifier to construct the final model.The *XGBoost* model has the advantages of high accuracy and is not easy to overfit (cite). It supports weak classification algorithm and weak regression model, and is suitable for establishing regression model. The model is presented as:
+
+\begin{equation}
+\hat{y_i} = \sum_{k=1}^{K} f_k(x_i), \quad f_k \in \mathcal{F}
+\end{equation}
+
+where $\hat{y}_i$ is the predicted value for the $i$-th instance, $K$ denotes the number of trees, $\mathcal{F}$ denotes the set of all possible regression trees, and $f_k$ represents a specific regression tree. 
+
+
+The goal of *XGBoost* is to build $K$ regression tree such that the predictions of the tree group are as close as possible to the true values, while ensuring the greatest generalisation ability. The prediction process is achieved by minimising an objective function, given by:
+
+\begin{equation}
+\text{obj}(\theta) = \sum_{i}^{n} l(y_i, \hat{y}_i) + \sum_{k=1}^{K} \Omega(f_k),
+\end{equation}
+
+where the first component, $\sum_{i=1}^{n} l(y_i, \hat{y}i)$, is a loss function that measures the deviation of the predicted values from the true values; the second part, $\sum_{k=1}^{K} \Omega(f_k)$, acts as a regularisation term that controls the complexity of the model, as:
+
+\begin{equation}
+\Omega(f_k) = \gamma T + \frac{1}{2} \lambda \lVert w \rVert^2,
+\end{equation}
+
+where $T$ represents the number of leave nodes in the tree, and $\lVert w \rVert^2$ is the weight of the corresponding leaf nodes.
+
+
+During the $t$-th iteration of training, the objective function is defined as:
+
+\begin{equation}
+\text{obj}^{(t)} = \sum_{i=1}^{n} l\left(y_i, \hat{y}_i^{(t-1)} + f_t(x_i)\right) + \Omega(f_k) + \sum_{i=1}^{t-1} \Omega(f_i)
+\end{equation}
+
+This formulation encapsulates both the training error and the complexity of each tree, steering the algorithm toward building an ensemble of trees that effectively balances accuracy and generalisation.
+\
+
+While *XGBoost* is acknowledged for its efficacy in classification tasks, its application for regression with continuous outcomes is debated among data analytics community, as per various informal yet esteemed sources such as discussions on Stack Overflow. A caveat associated with *XGBoost* is its suboptimal performance when the number of features surpasses the number of observations in the training data. In this study, the real dataset being investigated comprises a scenario where the number of data points exceeds the number of features, albeit with a high dimensional feature space. Considering these factors, it was deemed important to incorporate XGBoost into the analysis, although with an additional augmented simulated dataset configuration. -- This configuration is an extension of the earlier datasets with a modified proportion of data points to features, namely $p=50, n=500$, to better suit *XGBoost's* strengths, and, hence, provide a baseline, while retaining the data generation methodology outlined earlier.
+cite: https://www.kaggle.com/discussions/general/196542 (move this part to Simulated Data chapter). --
+
+  \subsection{Variable Selection within Bayesian Framework}
+        \subsubsection{Bayes’ Factor}
+        
+The *Bayes factor*, introduced by Jeffreys (1935), is a key tool in traditional Bayesian model comparison, widely discussed in Bayesian literature (Gelman et al. 2013). It quantifies the relative evidence for two models, $M_i$ and $M_j$, given data $y$,
+
+\begin{equation}
+B_{ij} = \frac{p(y|M_i)}{p(y|M_j)} = \frac{\int p(y|\theta_i,M_i)p(\theta_i|M_i)d\theta_i}{\int p(y|\theta_j,M_j)p(\theta_j|M_j)d\theta_j},
+\end{equation}
+
+where $p(y|\theta_k,M_k)$ denotes the likelihood under model $k$, and $p(\theta_k|M_k)$ represents the prior distribution of $\theta_k$. The variable $M$ denotes the model, taking values from a finite set of $K$ models. *Bayes factors* can be derived from posterior model probabilities with known prior model probabilities (Kass & Raftery 1995), enabling Bayesian model averaging, which accounts for model uncertainty in posterior estimates (Hoeting et al. 1999).
+
+
+Evaluating *Bayes factors* is challenging due to the difficulty in computing marginal likelihoods for each model. *MCMC* methods offer a solution but necessitate careful handling of varying parameter numbers to ensure ergodicity in the Markov chain. Carlin & Chib (1995) presented a method involving a global model with 'pseudo-priors' for all parameters. Green's (1995) *Reversible Jump MCMC (RJMCMC)* employs auxiliary variables to manage model dimension changes. However, defining pseudo-priors or auxiliary variables can be challenging and is an area of ongoing research. Barker & Link (2013) introduced a simplified *RJMCMC* approach compatible with Gibbs sampling. Chapter XX discusses Barker & Link’s approach, its integration with prior *MCMC* results, and introduces the *RJMCMC* algorithm along with the \texttt{rjmcmc} R package that facilitates *Bayes factor* and posterior model probability calculations using *RJMCMC* outputs.
+
+  \subsubsection{MCMC Algorithm}
+
+*Markov Chain Monte Carlo (MCMC)* involves generating samples of $\theta$ from approximate distributions and iteratively refining these samples to converge to the desired posterior distribution, $p(\theta|y)$. The essence of *MCMC* is not the Markov property per se, but the progressive improvement of the approximation towards the target distribution with each iteration. 
+A Markov chain is defined as a stochastic sequence $\{\theta^0, \theta^1, \theta^2, \ldots, \theta^n\}$, where each state $\theta^n$ depends only on its immediate predecessor $\theta^{n-1}$, with the initial state $\theta^0$ is set to an arbitrary value. The Markov chain evolves according to a transition kernel $P$, dependent only on $\theta^n$:
+
+\begin{equation}
+\theta^{n+1} \sim P(\theta^n, \theta^{n+1}) \, (\equiv P(\theta^{n+1}|\theta^n)).
+\end{equation}
+
+Under the conditions of aperiodicity and irreducibility, the *Markov chain* attains a stationary distribution, independent of initial values. After discarding initial states, the remaining states serve as dependent samples from the target posterior distribution. It is essential to ensure sufficient iterations for convergence and an adequate post-convergence sample size for minimal *Monte Carlo* errors. The complexity of the posterior distribution does not significantly affect the simplicity of state updates in the chain.
+
+Determining the number of initial states to discard, known as burn-in, is crucial to ensure that the Markov Chain has converged to the stationary distribution. Two common approaches to assess burn-in are through trace plots and the Brooks-Gelman-Rubin (BGR) diagnostic.
+
+The number of iterations after burn-in is essential to accurately estimate the summary statistics, and it is important to evaluate the *Monte Carlo* error. A common approach to estimate the *Monte Carlo* error involves batching. The chain is divided into $m$ batches each of length $T$, so that $n = mT$. Let $\theta_1,\ldots,\theta_m$ be the sample means for each batch, and $\theta$ denote the mean over all $n$ samples. The batch means estimate of $\sigma^2$ is then,
+
+\begin{equation}
+\hat{\sigma}^2 = \frac{T}{m - 1} \sum_{i=1}^{m}(\bar{\theta}_i - \bar{\theta})^2.
+\end{equation}
+
+An estimate of the *Monte Carlo* error is $\sqrt{\frac{\hat{\sigma}^2}{n}}$.
+The efficiency of the Markov chain in exploring the parameter space can be evaluated using the autocorrelation function (ACF). The ACF is the correlation of a parameter's value in the Markov chain with itself at a lag $j$, defined as $\text{cor}(\theta^t, \theta^{t+j})$. Efficient chains show a fast decrease in ACF as the lag increases, indicating low dependency between chain values within a few iterations.
+
+An alternative estimate of the Monte Carlo error uses the effective sample size $M$, defined as 
+
+\begin{equation}
+M = \frac{n}{1 + 2 \sum_{k=1}^{\infty} \rho_k},
+\end{equation}
+
+where $\rho_k$ is the autocorrelation at lag $k$. Practically, $M$ is estimated through an alternative method accounting for autocorrelations. The Monte Carlo error can be estimated as $\sqrt{\frac{\hat{\sigma}^2}{\hat{M}}}$.
+
+Thinning is a process of selecting every $k$-th realisation to reduce the autocorrelation of the *MCMC* sample. It is used primarily to alleviate storage or memory issues, but should be used judiciously as information is lost in the discarded samples.
+
+
+The description above provides lays the foundation of MCMC algorithms, of which three are particularly prominent: Gibbs sampling, Metropolis-Hastings, and Importance/Rejection sampling. 
+The subsequent Chapter XX will introduce an advanced extension to the MCMC, namely the Reversible Jump MCMC method involving Gibbs sampling as it is the most relevant to this paper.
+
+  \subsubsection{RJMCMC}
+
+Gibbs is specifically suited for high-dimensional models.
+Application: rjmcmc package in R (Gelling et al., 2019)
+
+
+The following chapter is heavily based on “R package \texttt{rjmcmc}: reversible jump MCMC using post-processing” by Gelling et al.
+
+Barker and Link (2013) introduced a modified version of Green's (1995) Reversible Jump MCMC (RJMCMC) algorithm which is compatible with Gibbs sampling. The \texttt{rjmcmc} package in R, available on CRAN, implements this modification by Barker & Link (2013), facilitating *RJMCMC* post-processing through automatic differentiation.
+
+Assuming we have data $y$, models indexed $1,...,K$, and a set of model-specific parameters $\theta_k$ for each model $k$, along with prior model probabilities $p(M_k)$, the posterior model probabilities are related to Bayes factors as:
+
+\begin{equation}
+\frac{p(M_i|y)}{p(M_j|y)} = B_{ij} \times \frac{p(M_i)}{p(M_j)}
+\end{equation}
+
+*RJMCMC*, as proposed by Green (1995), enables sampling across models by considering the model indicator as a latent variable that is sampled using MCMC. Transition between models $i$ and $j$ necessitates that: (i) both models have an equal number of parameters, and (ii) a bijective mapping exists between the parameters of the two models. Auxiliary variables $u_i$ are introduced to ensure the dimensions match, i.e., $\text{dim}(\theta_i,u_i) = \text{dim}(\theta_j,u_j)$. With the freedom to transition between any pair of models, $K(K-1)/2$ bijections must be defined. The choice of auxiliary variables and bijections doesn’t alter the posterior distribution, but affects computational efficiency. Limiting transitions between models can reduce the number of required bijections.
+\
+*Insert a graph here*
+\
+In the *RJMCMC* algorithm, at iteration $t$ of the Markov chain, a proposed model $M_{j}^*$ is proposed with the current value denoted as $M_{i}^{(t-1)}$. The proposed parameter values for model $M_{j}^*$ are found using the bijection $f_{ij}(\cdot)$ as
+
+\begin{equation}
+(\theta_{j}^*, u_{j}^*) = f_{ij}(\theta_{i}^{(t-1)}, u_{i}^{(t-1)}).
+\end{equation}
+
+The joint proposal is accepted or rejected using a Metropolis step. The selection of the bijection is crucial, as it affects the efficiency and convergence rate of the chain.
+Barker \& Link (2013) introduced a restricted version of Green's *RJMCMC* algorithm, suitable for implementation via Gibbs sampling. This method involves introducing a universal parameter vector $\psi$, whose dimension is at least the maximum dimension of the model-specific parameters, i.e., 
+
+\begin{equation}
+\text{dim}(\psi) \geq \max_{k} \{\text{dim}(\theta_{k})\}.
+\end{equation}
+
+Model-specific parameters $\theta_i$ and auxiliary variables $u_i$ are derived from $\psi$ using a bijection $g_i(\cdot)$:
+
+\begin{equation}
+(\theta_{i}, u_{i}) = g_{i}(\psi),
+\end{equation}
+
+\begin{equation}
+\psi = g_{i}^{-1}(\theta_{i}, u_{i}).
+\end{equation}
+
+Model parameters in model $i$ are mapped to model $j$ through the universal parameter vector $\psi$,
+
+\begin{equation}
+(\theta_{j}, u_{j}) = g_{j}(g_{i}^{-1}(\theta_{i}, u_{i})).
+\end{equation}
+
+This method necessitates $K$ bijections to move among $K$ models. The joint distribution is expressed as:
+
+\begin{equation}
+p(y,\psi,M_k)=p(y|\psi,M_k)p(\psi|M_k)p(M_k),
+\end{equation}
+
+where $p(y|\psi,M_k)=p(y|\theta_k,M_k)$ is the joint probability density for the data under model $k$, $p(\psi|M_k)$ is the prior for $\psi$ given model $k$, and $p(M_k)$ is the prior model probability for model $k$.
+
+Since priors are typically in the form $p(\theta_k|M_k)$, $p(\psi|M_k)$ is found as:
+\begin{equation}
+p(\psi|M_k) = p(g_k(\psi)|M_k) \left| \frac{\partial g_k(\psi)}{\partial \psi} \right|,
+\end{equation}
+
+where $\left| \frac{\partial g_k(\psi)}{\partial \psi} \right|$is the determinant of the Jacobian for the bijection $g_k$, denoted as $|J_k|$.
+The algorithm employs a Gibbs sampler that alternates between updating $M$ and $\psi$. The full-conditional distribution for $M$ is categorical, with probabilities:
+
+\begin{equation}
+p(M_k|\cdot) = \frac{p(y,\psi,M_k)}{\sum_j p(y,\psi,M_j)}.
+\end{equation}
+
+A sample from the full-conditional for $\psi$ is obtained by drawing $\theta_k$ and $u_k$ from their respective distributions and computing $\psi=g_k^{-1}(\theta_k,u_k)$.
+Barker & Link (2013) also detailed a Rao-Blackwellized estimator for posterior model probabilities, based on estimating a transition matrix whose $(i, j)$ entry represents the probability of transitioning from model $M_i$ to $M_j$. The posterior model probabilities are derived by normalising the left eigenvector of this estimated transition matrix.
+\
+An essential feature of the \texttt{rjmcmc} package is the automatic computation of $|J_k|$ through automatic differentiation, which greatly simplifies implementation, especially when dealing with a large number of parameters.
+\
+The computation of Bayes factors is challenging, hindering the execution of Bayesian multimodel inference. The \texttt{rjmcmc} package facilitates precise estimation of Bayes factors and posterior model probabilities for a predefined set of models. It should be noted that while RJMCMC is a general algorithm originally designed for model selection, including variable selection, by allowing changes in the number of parameters during the MCMC simulation, the \texttt{rjmcmc} package focuses on refining posterior distributions and facilitating model comparison rather than conducting an automated search through the entire model space. \texttt{rjmcmc} is essentially a post-processing algorithm that uses previous MCMC model output. 
+
+  \subsubsection{DIC}
+
+The following section relies on “Bayesian Data Analysis”, 3rd Edition by Gelman et al.
+*Deviance Information Criterion (DIC)* is, to some degree, a Bayesian version of *AIC*, two changes are applied: the maximum likelihood estimate $\hat{\theta}$ is replaced with the posterior mean $\hat{\theta}_{\text{Bayes}} = E(\theta | y)$, while $k$ is replaced with a data-based bias correction. The measure of predictive accuracy is then: 
+
+\begin{equation}
+\widehat{elpd}_{\text{DIC}} = \log p(y|\hat{\theta}_{\text{Bayes}}) - p_{\text{DIC}},
+\end{equation}
+where $p_{\text{DIC}}$ is the effective number of parameters, calculated as,
+
+\begin{equation}
+p_{\text{DIC}} = 2\left(\log p(y|\hat{\theta}_{\text{Bayes}}) - E_{\text{post}}\left(\log p(y|\theta)\right)\right),
+\end{equation}
+
+where the expectation in the second term is an average of $\theta$ over its posterior distribution. Then the expression above can be computed using simulations $\theta^s$, $s = 1, . . . , S$ as, 
+
+\begin{equation}
+p_{\text{DIC, computed}} = 2 \left(\log p(y|\hat{\Theta}_{\text{Bayes}}) - \frac{1}{S} \sum_{s=1}^{S} \log p(y|{\Theta}^s)\right).
+\end{equation}
+
+The measure *DIC* is then defined in terms of the deviance rather than the log predictive density, as, 
+
+\begin{equation}
+DIC = -2 \log p(y|\hat{\theta}_{\text{Bayes}}) + 2p_{\text{DIC}}.
+\end{equation}
+
+*DIC* is only valid when the posterior distribution is approximately multivariate normal. 
+In some cases, a negative effective number of parameters can be obtained. *DIC*, besides being heavily criticised (please refer to detailed criticisms in Spiegelhalter et al., 2014), it also cannot be used with discrete parameters since $E_{\pi}(\theta|x)$ typically does not coincide with one of the discrete values under consideration. 
+
+When considering a vast array of possible models, conducting a fit for each one against the data may not be feasible due to computational constraints. Furthermore, the *DIC* does not yield a readily interpretable quantitative comparison, limiting its practicality in such situations. An alternative approach for Bayesian model discrimination that offers more intuitive results is using Bayes Factors (please refer to description xx sections above) or posterior model probabilities. These methodologies not only offer quantitative comparisons of contending models but also facilitate the incorporation of model averaging concepts, potentially enhancing the overall predictive strength and robustness of the modelling process. 
+
+
+Due to the aforementioned criticisms of *DIC*, coupled with the challenges in computing the scores in high-dimensional settings upon which this paper is based, the exploration of *DIC* will not be pursued further.
+
+
+**pdic alternative** – gives only positive values, check which penalty term your final package uses!
+
+
+**Application**: *DIC* can be readily computed within a MCMC algorithm and is available in software OpenBUGS. Upon completion of the simulations, navigating to the 'Inference' tab, selecting 'DIC...', and then choosing 'set' post the burn-in phase will provide you with the computed *DIC* statistic. This calculation uses the posterior mean as the point estimate for determining the effective number of parameters. The expression $-2E_{\pi}(\log{f(x|\theta_m,M = m)})$ is displayed as $\text{DBar}$. The term $-2\log{f(x|\hat{\theta}_m,M = m)}$ is represented as $\text{DHat}$.
+
+  \subsubsection{WAIC}
+        
+The following section relies on “Bayesian Data Analysis”, 3rd Edition by Gelman et al.
+
+The popularity of *DIC* is primarily due to its ease of calculation and its inclusion in standard software, while *WAIC*, which requires Monte Carlo estimation of predictive densities, can be significantly more challenging to implement robustly (Spiegelhalter et al., 2014).
+
+However, due to the extensive issues with *DIC*, *WAIC* was introduced as a counterpart. 
+*WAIC* represents a more fully Bayesian approach designed to estimate the out-of-sample expectation. This approach begins with the computation of the log pointwise posterior predictive density, followed by the addition of a corrective measure for the effective number of parameters, mitigating potential overfitting.
+
+
+Out of two possible adjustments, this thesis includes the relevant one that involved calculating the variance of individual terms in the log predictive density, summed across all the $n$ data points, given as, 
+
+\begin{equation}
+p_WAIC2 = \sum_{i=1}^{n} \text{var}_{\text{post}}(\log p(y_i|\theta)).
+\end{equation}
+
+Formula XX is then computed by evaluating the posterior variance of the log predictive density for each data point $y_i$, that is $V_{s=1}^{S}\log p(y_i|\theta^s)$, where $V_{s=1}^S$ represents the sample variance given by
+
+\begin{equation}
+V_{s=1}^{S}a_s = \frac{1}{S-1}\sum_{s=1}^{S} (a_s - \bar{a})^2.
+\end{equation}
+
+The total sum across all data points $y_i$ gives the effective number of parameters, as,
+
+\begin{equation}
+\text{computed } p_{WAIC2} = \sum_{i=1}^{n} V_{s=1}^{S} (\log p(y_i |\theta^s)).
+\end{equation}
+
+Then use it for bias correction, as,
+
+\begin{equation}
+\widehat{\text{elppd}}_{\text{WAIC}} = \text{lppd} - \text{p}_{\text{WAIC}}.
+\end{equation}
+
+Similar to *AIC* and *DIC*, the *WAIC* is determined by multiplying the above-mentioned expression by negative two to align it with the deviance scale:
+
+\begin{equation}
+WAIC = -2\text{lppd} + 2\text{p}_{WAIC2},
+\end{equation}
+
+with $lppd$ computed as in XX and $p_{WAIC2}$ in XX.
+
+In contrast to *AIC* and *DIC*, *WAIC* favourably averages over the posterior distribution instead of relying on a single point estimate. This characteristic is particularly significant in a predictive framework as WAIC assesses the actual predictions being made for new data in a Bayesian context. While *AIC* and *DIC* gauge the performance of the plug-in predictive density, Bayesian applications of these metrics still employ the posterior predictive density for forecasting.
+
+
+**Application**: Nimble package uses p_WAIC2 penalty. Please, remember that there are 2 penalty terms that can be used.
+
+
+These model selection criteria tend to select more variables than necessary in high-dimensional linear models (Casella et al., 2009).
+
+  \subsubsection{Spike and Slab Prior}
+  
+“High-dimensional data sets have become ubiquitous in the past few decades, often with many more covariates than observations. In the frequentist setting, penalised likelihood methods are the most popular approach for variable selection and estimation in high-dimensional data. In the Bayesian framework, spike-and-slab methods are commonly used as probabilistic constructs for high-dimensional modelling.”
+\
+The *spike-and-slab* approach, originally pioneered by Lempers, Mitchell, and Beauchamp (Mitchell & Beauchamp, 1988), is employed for variable selection by driving the coefficients $\beta_k$ towards zero when they are truly zero. This is achieved through the spike and slab hierarchy, wherein the hypervariances play a crucial role. Specifically, small hypervariances induce shrinkage towards zero, effectively deselecting variables, while large hypervariances allow for the retention of significant coefficients in the model. 
+
+A *spike-and-slab* model is defined by a Bayesian hierarchical structure as follows (Ishwaran & Rao, 2005):
+
+\begin{align*}
+   (Y_i | X_i, \boldsymbol{\beta}, \sigma^2) &\sim \mathcal{N}(X_i^T \boldsymbol{\beta}, \sigma^2), \quad i = 1, \ldots, n, \\
+    (\boldsymbol{\beta} | \boldsymbol{\gamma}) &\sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Gamma}), \quad \boldsymbol{\Gamma} = \text{diag}(\gamma_1, \ldots, \gamma_K), \\
+    \boldsymbol{\gamma} &\sim \pi(d\boldsymbol{\gamma}), \\
+    \sigma^2 &\sim \mu(d\sigma^2),
+\end{align*}
+
+where $\mathbf{0} \text{ is a } K\text{-dimensional zero vector},$ $\boldsymbol{\gamma} = (\gamma_1, \ldots, \gamma_K)^T,$ $\pi \text{ and } \mu \text{ are prior measures for } \boldsymbol{\gamma} \text{ and } \sigma^2 \text{ respectively},$ and it is assumed that both \(\pi\) and \(\mu\) assign probability one to positive values, i.e., $\pi\{\gamma_k > 0\} = 1 \text{ for } k=1,\ldots,K \text{ and } \mu\{\sigma^2 > 0\} = 1.$
+
+https://www.researchgate.net/profile/Udaya-Kogalur/publication/228968866_spikeslab_Prediction_and_Variable_Selection_Using_Spike_and_Slab_Regression/links/0c960528a1b1f73815000000/spikeslab-Prediction-and-Variable-Selection-Using-Spike-and-Slab-Regression.pdf - this might describe it better.
+
+
+**Application**
+
+
+The **spikeslab** R package, developed by Ishwaran et al., 2010), implements a rescaled three-step spike and slab algorithm described in Ishwaran and Rao, 2010. First, filtering occurs to retain the top $nF$ variables, selected based on their absolute posterior mean coefficients computed via Gibbs sampling on a rescaled spike and slab posterior. Subsequently, a Gibbs sampler is employed to fit a rescaled spike and slab model using only the variables retained in Step 1. The posterior mean, termed the BMA, is computed and serves as the estimator for regression coefficients. Lastly, the generalised elastic net (gnet) is calculated, fixing its $L2$-regularisation parameters based on the BMA from Step 2. Utilising the **lars** R package, a solution path is computed concerning the $L1$-regularisation parameter. The model minimising the AIC criterion within this path is defined as the gnet. Notably, cross-validation is not employed, reducing computational time. The gnet estimator is inherently stable due to its BMA basis, allowing simple model selection methods like AIC to be effective. This contrasts with techniques like elastic net, which typically rely on cross-validation for regularisation parameter determination.
+
+  \subsubsection{Spike and Slab Prior Meets Lasso}
+
+Within the frequentist statistics, sparse recovery for $\beta$ is often achieved through the least absolute shrinkage and selection operator (LASSO), whereas in the Bayesian domain, *spike-and-slab priors* are favoured for sparse modeling of $\beta$. In the Bayesian framework, the *spike-and-slab LASSO (SSL)*, introduced by Ročková & George (2018), bridges penalised likelihood LASSO method with the traditional *spike-and-slab prior* approach, capitalising on the strengths of both while mitigating their drawbacks. 
+
+
+The package **SSLASSO** specifically, implements *SSL* which uses a dynamic penalty that adjusts based on the level of sparsity and performs selective shrinkage. It also supports fast algorithms for finding the most probable estimates, ensuring efficiency and scalability. Lastly, debiasing the posterior modal estimate or applying effective posterior sampling techniques can be used to quantify uncertainty for the *SSL*. 
+
+
+The *SSL*, introduced by (Moran et al., 2019 or maybe Veronika Ročková and Edward I. George), employs a mixture of Laplace priors for the regression coefficients, $\beta_j$, given by:
+
+\begin{align*}
+\beta_j |(\gamma_j = 0) &\sim \text{Laplace}(\lambda_0), \\
+\beta_j |(\gamma_j = 1) &\sim \text{Laplace}(\lambda_1),
+\end{align*}
+
+where $\text{Laplace}(\mu, b)$ represents the Laplace distribution with probability density function $\psi(\beta|\lambda) = \frac{\lambda}{2} \exp(-\lambda |\beta|)$, and $\lambda_0 \gg \lambda_1$. The Laplace prior has heavier tails compared to the Gaussian counterpart.
+Contrary to traditional approaches that rely on the posterior distribution of $\gamma$ for variable selection, (Ročková & George, 2014) focused on obtaining the maximum a posteriori (MAP) estimator for $\beta | (y, X)$ through an innovative EM algorithm, studying its theoretical attributes. This methodology concentrates on summaries from the $\beta$ posterior rather than $\gamma$, yet maintains the utility of the prior framework for model selection involving the posterior of $\gamma$ when utilising the *spike-and-slab LASSO prior*. (Tadesse & Vannucci, 2022)
+
+  \subsubsection{Horseshoe Prior}
+
+To remind ourselves, we are in this setting: $\mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}, \boldsymbol{\epsilon} \sim \mathcal{N}(0, \sigma_\epsilon^2 \mathbf{I})$. When $\boldsymbol{\theta}$ is believed to be sparse, the Bayesian Horseshoe prior is formulated as: 
+
+\begin{align*}
+\mathbf{y} &\sim \mathcal{N}(0, \mathbf{I}_p \sigma^2), \\
+\theta_j \mid \lambda_j, \tau &\sim \mathcal{N}(0, \lambda_j^2 \tau^2), \quad \text{for } j = 1,\ldots,p, \\
+\lambda_j \mid \tau &\sim \mathcal{C}^+(0, \tau), \\
+\tau &\sim \mathcal{C}^+(0, a),
+\end{align*}
+
+where $\mathcal{N}$ denotes the normal distribution, $\mathcal{C}^+$ denotes the half-Cauchy distribution, $\mathbf{I}_p$ is the $p \times p$ identity matrix, and $\sigma^2$ is a constant variance. $\tau$ is a global shrinkage parameter and $\lambda_j$ are local shrinkage parameters that are specific to each element of $\boldsymbol{\theta}$. Additionally, Jeffreys' prior is used for the variance, which is non-informative and is proportional to $1/\sigma^2$. The horseshoe prior has the property that it tends to shrink the majority of the coefficients $\beta_j$ towards zero (enforcing sparsity) while allowing some coefficients to remain large if they are indeed associated with the response variable. This makes the horseshoe prior particularly effective for variable selection in high-dimensional settings.
+
+The horseshoe prior is used to enforce sparsity on the regression coefficients $\boldsymbol{\beta}$. Specifically, the posterior mean of each coefficient $\beta_j$ can be expressed as a linear function of the corresponding observation $y_i$:
+
+\begin{equation}
+E(\beta_i|y_i) = y_i(1 - E(k_i|y_i)),
+\end{equation}
+
+same: where $k_i$ represents the shrinkage coefficient. The half-Cauchy prior on $\lambda_i$ induces a Beta$(\frac{1}{2}, \frac{1}{2})$ distribution for $k_i$, which has a horseshoe shape. For $k_i \approx 0$, there is negligible shrinkage representing signals, while for $k_i \approx 1$, there is substantial shrinkage representing noise. Notably, the horseshoe prior does not require user-specified hyperparameters as the priors for $\lambda_i$, $\tau$, and $\sigma$ are fully defined. This results in a robust and adaptive prior with commendable performance across diverse scenarios.
+
+
+It is demonstrated that the horseshoe prior exhibits robustness to large signals due to its heavy-tailed nature and facilitates efficient shrinkage of noise, particularly in sparse settings. Through a novel representation theorem, the tail behaviour of the prior is characterised in terms of the score function. The asymptotic convergence rates of estimators are analysed, emphasising the superior performance of the horseshoe prior in scenarios with sparse true values and its inherent Bayesian robustness for values distant from zero. (Carvalho et al., 2010) 
+
+
+**Application**: horseshoe: Implements the horseshoe prior for sparse linear regression. monomvn package 2
+bayesreg is user friendly. The lasso, horseshoe and horseshoe+ priors are recommended for data sets where the number of predictors is greater than the sample size.
+
+The **bayesreg** package fits linear or generalised linear regression models using Bayesian global-local shrinkage prior hierarchies, described in (Polson & Scott, 2011). This thesis narrows its focus specifically on the horseshoe and horseshoe+, which are adept at handling high-dimensional datasets (Makalic & Schmidt, 2016). The package provides both variable ranking and importance, credible intervals, and diagnostics, which include earlier described WAIC (based on which penalty?). The **bayesreg** package boasts a considerably faster and more versatile implementation of shrinkage regression compared to **monomvn**, **fastHorseshoe** and **horseshoe** packages. It also avoids issues when sample size is equal or smaller to number of predictors as compared to the competing packages. The bayesreg package employs Gibbs sampling for its implementation and strategically selects between two algorithms for the efficient sampling of regression coefficients based on the ratio of predictors to sample size: Rue's algorithm when p/n < 2 (Rue, 2001), and Bhattacharya et al.'s algorithm otherwise (Bhattacharya et al., 2015). This approach circumvents the computational and numerical accuracy challenges inherent in directly computing matrix inverses, particularly in high-dimensional settings.
+
+
+  \subsubsection{Laplace Approximation}
+  
+This chapter relies on (Friston et al., 2007).
+
+
+The Laplace approximation is used to approximate the integral of a function $f(\theta)$ by fitting a Gaussian distribution at the maximum, $\hat{\theta}$, of $f(\theta)$, and then calculating the volume under the Gaussian. The covariance of the Gaussian is determined by the Hessian matrix of $\log f(\theta)$ evaluated at the maximum point $\hat{\theta}$ (Mackay, 1998).
+
+Laplace approximation is rooted in asymptotic analysis, where it is used to find approximate solutions to problems as parameters approach some asymptotic limit. As the data size $N$ approaches infinity, the asymptotic series rapidly converges to a solution. This makes the Laplace approximation a computationally efficient method for analysing the posterior distribution, especially in cases where the normalising constant is difficult to evaluate.
+
+Let an $N$-dimensional parameter vector be denoted $\boldsymbol{\theta}$, with prior distribution $f(\boldsymbol{\theta})$ and likelihood function $f(\mathbf{x}|\boldsymbol{\theta})$. Define $h(\boldsymbol{\theta}) = f(\boldsymbol{\theta})f(\mathbf{x}|\boldsymbol{\theta})$. There exists a $\boldsymbol{\theta}^*$ at which $h(\boldsymbol{\theta})$ is maximised. The Laplace Method approximates integrals of the form:
+
+\begin{equation}
+\int_{a}^{b} e^{N \cdot f(y)} dy,
+\end{equation}
+
+where $N$ is large, by fitting a Gaussian around $\boldsymbol{\theta}^*$ and computing the integral under this Gaussian.
+
+
+Laplace approximation is applied as:
+
+
+1.	*Identify the mode* of $f(x|\theta)$, denoted as $\theta^* = \arg\max_{\theta} \ln(f(x|\theta))$. This is the point where the function $f(x|\theta)$ reaches its maximum.
+
+2.	*Compute the curvature at the mode*, using the Hessian matrix of $\ln(f(x|\theta))$ evaluated at $\theta*$. The Hessian matrix, $\nabla \nabla \ln(f(x|\theta^*))$, is a square matrix of second-order partial derivatives of the function.
+
+3.	In the context of the Laplace approximation, the mode and the negative of the curvature at the mode represent the mean and the variance of the *Gaussian approximation* to the posterior distribution, respectively.
+
+For a general differentiable function $G(X)$, where $X = (x_1, x_2, ..., x_m)$, the gradient of $G(X)$ is given by
+
+\begin{equation}
+\nabla G(X) = \left(\frac{\partial G(X)}{\partial x_1}, ..., \frac{\partial G(X)}{\partial x_m}\right).
+\end{equation}
+
+LA is often used to approximate a posterior distribution with a Gaussian distribution centred at the Maximum a Posteriori (MAP) estimate. This application of the Laplace method is justified by the fact that under certain conditions, the posterior distribution approaches a Gaussian as the number of samples increases (Gelman et al., n.d.).
+
+(However, despite using a full distribution to approximate the posterior, the Laplace approximation shares many of the limitations of MAP estimation. For instance, estimating the variances at the end of an iterative learning process does not improve the approximation if the procedure has already led to an area of low probability mass.)
+
+In practice, the LA makes use of the first-order Taylor series expansion:
+
+\begin{equation}
+h(\theta) = h(\mu_i) + \frac{\partial h (\mu_i)}{\partial \theta} (\theta - \mu_i),
+\end{equation}
+
+where the expansion is around a solution, $\theta_L$, obtained by an optimisation algorithm. The MAP solution is typically used for this purpose:
+
+\begin{equation}
+\theta_{MAP} = \arg\max_{\theta} [p(y|\theta, m) p(\theta|m)]
+\end{equation}
+
+Thus, $\theta_L = \theta_{MAP}$. The model non-linearity is approximated using $h(\theta) = h(\theta_L) + J(\theta - \theta_L)$, where $J = \frac{\partial h (\theta_L)}{\partial \theta}$. The posterior covariance is given by $C_L^{-1} = J^T C_e^{-1} J + C_p^{-1}$.
+
+The Laplace approximation is also used to compute the model evidence, which is crucial for Bayesian model comparison. The log-evidence under the Laplace approximation is given by:
+
+\begin{equation}
+\begin{split}
+\log p (y|m)_L = & \frac{-N_s}{2} \log 2\pi - \frac{1}{2} \log |C_e| - \frac{1}{2} \log |C_p| \\
+& + \frac{1}{2} \log |C_L| - \frac{1}{2} r(\theta_L)^T C_e^{-1} r(\theta_L) \\
+& - \frac{1}{2} e(\theta_L)^T C_p^{-1} e (\theta_L)
+\end{split}
+\end{equation}
+
+When comparing models, we can ignore the first term as it is constant across models. Rearranging gives the trade-off between accuracy and complexity in model comparison:
+
+\begin{equation}
+\log p(y|m)_L = \text{Accuracy} (m) - \text{Complexity} (m)
+\end{equation}
+
+where 
+
+\begin{align*}
+\text{Accuracy} (m) &= - \frac{1}{2} \log |C_e| - \frac{1}{2} r(\theta_L)^T C_e^{-1} r(\theta_L), \\
+\text{Complexity}(m) &= \frac{1}{2} \log |C_p| - \frac{1}{2} \log |C_L| + \frac{1}{2} e (\theta_L)^T C_p^{-1} e(\theta_L).
+\end{align*}
+
+The complexity term depends on the prior covariance, $C_p$, which determines the 'cost' of parameters. This can lead to biases in model comparisons if the prior covariances are fixed a priori. For instance, if the prior covariances are set to large values, model comparison will consistently favour simpler models.
+
+It is essential to acknowledge the limitations of LA: it is ineffective for multi-modal posteriors, especially when modes are close together or when the mode of interest is far from the majority of the probability mass in high-dimensional spaces. LA also heavily relies on the smoothness assumption, making it less reliable for small sample sizes or when parameters are near the boundaries of the parameter space. LA does not account for global properties of the posterior distribution and is limited to parameters in $\mathbb{R}$. Practical strategies for addressing these limitations include gathering more data, if feasible, performing a log-transformation to reduce dimensionality, and reducing high-dimensional integrals to surface integrals.
+
+In addition, LA method can also be extended to compare model fit, as a function of the posterior odds. The marginal likelihood can be approximated as:
+
+\begin{equation}
+f(x) = \int f(x|\theta) f(\theta) d\theta \approx (2\pi)^{N/2} \frac{f(x|\theta * ) f(\theta * )}{|h_{\theta\theta}(\theta *)|^{1/2}}
+\end{equation}
+
+where
+
+\begin{equation}
+h_{\theta\theta} = \frac{- \partial^2 \ln [f(y|\theta)f(\theta)]}{\partial \theta \partial \theta^T} \Bigg|_{\theta=\theta^*}
+\end{equation}
+
+In this equation, $f(x|\theta)$ is the likelihood of the data given the parameters $\theta$, $f(\theta)$ is the prior distribution of the parameters, and $h_{\theta\theta}$ is the Hessian matrix (the second derivative of the log-likelihood plus the log-prior) evaluated at the maximum a posteriori estimate $\theta^*$. The integral on the left-hand side is the exact marginal likelihood, which is approximated by the term on the right-hand side using the Laplace approximation.
+
+
+**Application**:
+
+
+LaplacesDemon package: “Laplace Approximation is noted for its efficiency in runtime compared to Markov Chain Monte Carlo (MCMC) methods. Specifically, it is highlighted that the Laplace Approximation typically requires less time than MCMC due to its focus on seeking point-estimates rather than attempting to represent the target distribution through simulation draws. Furthermore, the method is found to be more adept at improving the objective function in instances where the parameters lie in low-probability regions compared to other methods such as iterative quadrature, MCMC, and Population Monte Carlo (PMC). However, caution is advised due to the Laplace Approximation's limitations, which include its asymptotic nature with respect to sample size and the assumption that marginal posterior distributions are Gaussian.” 
+
+
+Application: LaplacesDemon package uses “When Method="SPG", a Spectral Projected Gradient algorithm is used. SPG is a non-monotone algorithm that is suitable for high-dimensional models. The approximate gradient is used, but the Hessian matrix is not. When used with large models, CovEst="Hessian" should be avoided. SPG has been adapted from the spg function in package BB.”
+
+  \subsubsection{Shotgun Stochastic Search Algorithm}
+  
+The Shotgun Stochastic Search (SSS) algorithm, introduced by Hans et al. (2007), is designed to efficiently navigate high-dimensional model spaces in regression settings with a large number of candidate predictors, where $p \gg n$. Its primary objective is to swiftly pinpoint regions with high posterior probabilities and ascertain the maximum a posteriori (MAP) model. To achieve this, the algorithm amalgamates sparsity-inducing priors promoting parsimony, temperature control akin to that used in global optimisation algorithms like simulated annealing (Kirkpatrick and Vecchi, 1983), and screening techniques resembling Iterative Sure Independence Screening (Fan and Lv, 2008). Furthermore, SSS exploits parallel computation to enhance performance on cluster computers.
+
+The MAP model, denoted $\hat{k}$, is formally defined as:
+
+\begin{equation}
+\hat{k} = \underset{k \in \Gamma^*}{\arg\max} \{\pi(k | y)\},
+\end{equation}
+
+where $\Gamma^*$ represents the set of models that are assigned non-zero prior probability.
+
+In its quest to traverse large model spaces and pinpoint global maxima efficiently, SSS algorithm defines $\text{nbd}(k) = \{\Gamma^+, \Gamma^-, \Gamma^0\}$, where $\Gamma^+ = \{k \cup \{j\} : j \in k^c\}$, $\Gamma^- = \{k \setminus \{j\} : j \in k\}$, and $\Gamma^0 = \{[k \setminus \{j\}] \cup \{l\} : l \in k^c, j \in k\}$. The *SSS* algorithm proceeds as follows:
+
+\begin{enumerate}
+    \item Select an initial model $k^{(1)}$.
+    \item For $i = 1$ to $i = N - 1$:
+    \begin{itemize}
+        \item Compute $\pi(k | y)$ for all $k \in \text{nbd}(k^{(i)})$.
+        \item Sample $k^+$, $k^-$, and $k^0$ from $\Gamma^+$, $\Gamma^-$, and $\Gamma^0$, 
+        respectively, with probabilities proportional to $\pi(k | y)$.
+        \item Sample $k^{(i+1)}$ from $\{k^+, k^-, k^0\}$, with probability proportional to $\{\pi(k^+ | y), \pi(k^- | y), \pi(k^0 | y)\}$.
+    \end{itemize}
+\end{enumerate}
+
+The MAP model is determined as the model with the highest unnormalised posterior probability among  those models searched by SSS.
+
+
+*S5*
+
+As the objective of this thesis is to blend statistical methodology with application, it is imperative to dissect the proposed computational tools. Over the years, the algorithm has evolved, and a streamlined version incorporating screening has been developed and made available through the R package, Bayes5 (Shin et al., 2015).
+
+The Simplified Shotgun Stochastic Search with Screening (S5) algorithm is a modified version of the SSS designed to further enhance computational efficiency. S5 restricts its search to models in $\Gamma^+$ and $\Gamma^-$, thereby omitting the computationally intensive evaluation of marginal probabilities for models in $\Gamma^0$. However, this focused search might lead the algorithm to overlook certain high-posterior probability regions and risk settling in local maxima. To mitigate this, S5 introduces a temperature parameter, akin to simulated annealing, enabling broader exploration.
+
+Furthermore, S5 incorporates an Iterative Sure Independence Screening strategy to focus on variables highly correlated with the residuals of the current model. Specifically, it assesses $|r_k^T X_j|$, where $r_k$ is the residual of model $k$, for $j = 1, \ldots, p$, and prioritises variables for which this product is large.
+
+In S5, $S_k$ represents the union of variables in $k$ and the top $M_n$ variables obtained through residual-based screening. The screened neighborhood, denoted as $\text{nbd}_{scr}(k) = \{\Gamma^{+}_{\text{scr}}, \Gamma^{-}\}$, is defined with $\Gamma^{+}_{\text{scr}} = \{k \cup \{j\} : j \in k^c \cap S_k\}$. This results in a scalable algorithm, particularly beneficial when the number of variables $p$ is large.
+
+S5 algorithm employs a temperature schedule and utilises a screened set of variables to improve efficiency in identifying the MAP model. It approximates the posterior model probability and assesses model space uncertainty by approximating the normalising constant from the unnormalised posterior probabilities. 
+
+The computational complexity of the original SSS algorithm is proportional to the product of the number of models explored and the complexity of evaluating the unnormalised posterior probability for the largest model, denoted as $E_n$, and is given by $[ O\{Np\} + O\{Nq_n\} + O\{N(p-q_n)q_n\} ] \times E_n$, where $q_n$ is the maximum size of model among searched models and $q_n < n <<p$.
+
+In contrast, S5 dramatically reduces the number of models considered by focusing on $M_n$ variables post-screening. This leads to a computational complexity of $[O\{JL(M_n - q_n)\} + O(JLM_n)] \times E_n + O(JLnp)$, where $q_n < M_n$. The algorithm is scalable since its complexity is relatively insensitive to the size of $p$.
+
+(Shin et al., 2015) demonstrated that S5 is significantly faster than SSS in identifying the MAP model and requires fewer model evaluations.
+
+
+\section{Simulated Data Study}
+
+As noted before, variable selection methods are applied within the framework of linear regression, denoted by $Y = X\beta + e$, where $e \sim \mathcal{N}(0, \sigma^2)$. The thesis provides an analytical contrast between Bayesian techniques and their frequentist counterparts, specifically, Lasso and Elastic Net penalisations, which were rigorously studied in semesters 1 and 2. Additionally, a contemporary machine learning technique, *XGBoost*, is also applied to provide a comprehensive comparative.
+
+Each of the datasets *T1*, *T2*, *T3*, and *T4* that follow are designed to be adaptable across various dimensionality settings.
+
+  \subsection{Type 1}
+
+The *T1* datasets consist of uncorrelated continuous covariates with a moderate level of noise. The covariates are simulated from a multivariate normal distribution:
+
+\begin{equation}
+\mathbf{X} \sim \text{MVN}(\mathbf{u}_x, \sigma_x^2 \mathbf{\Sigma}_x),
+\end{equation}
+
+where $\mathbf{u}_x$ is a $1 \times p$ mean vector, $\mathbf{\Sigma}_x$ is a $p \times p$ correlation matrix, and $\sigma_x^2$ is the common variance of all covariates. Each $x_i$ is normally distributed with a mean of 5, i.e., $\mathbf{u}_x = (5, 5, \ldots, 5)$. $\mathbf{\Sigma}_x$ is a $p \times p$ identity matrix and $\sigma_x^2 = 1$. The response variable $y$ is generated as:
+
+\begin{equation}
+\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon},
+\end{equation}
+
+where $\boldsymbol{\epsilon_i} \sim N(0, \sigma_e^2)$ for $i = 1, 2, \ldots, n$. $\boldsymbol{\beta}$ is a $p \times 1$ vector of true coefficients, $\boldsymbol{\epsilon}$ is an $n \times 1$ vector of error terms, $\sigma_e^2$ is the error variance, and $\mathbf{I_n}$ is an $n \times n$ identity matrix. The regression coefficients are enforced as $\beta_1, \ldots, \beta_{10} = 5$; $\beta_{11}, \ldots, \beta_{20} = 3$, and $\beta_{p-20} = 0$. The intercept term is zero, and the errors are normally distributed with $\sigma_e^2 = 15$.
+
+  \subsection{Type 2}
+
+The *T2* dataset comprises continuous covariates with temporal correlation and moderate noise. The generation of the *T2* dataset parallels the method utilised for the *T1* dataset with certain distinctions. Specifically, the mean vector for the covariates $\mathbf{u}_x$ is constructed such that the first 30 variables each have a mean of 3, and the rest have a mean of 7; that is, $\mathbf{u}_x = (3, 3, \ldots, 3, 7, 7, \ldots, 7)$. The covariance matrix of the covariates $\mathbf{\Sigma}_x$ adheres to an AR(1) (autoregressive order 1) structure, with the correlation coefficient $\rho = 0.8$, $\sigma_x^2$ is held constant at 1. For the response variable, 20 covariates are true signals. The vector of true regression coefficients, $\boldsymbol{\beta}$, is defined with non-zero values for the first 20 entries (e.g., 5 for each), while the remaining entries are set to zero; thus, $\boldsymbol{\beta} = (5, 5, \ldots, 5, 0, 0, \ldots, 0)^T$. The error term variance $\sigma_e^2 = 10$.
+
+
+  \subsection{Type 3}
+
+The *T3* dataset is a rich blend of continuous and categorical covariates, including interaction terms and polynomial features, with moderate noise. In this dataset, the mean vector for continuous covariates $\mathbf{u}_x$ is segmented into three groups: the first 20 variables have a mean of 2, the next 30 have a mean of 5, and the remaining variables have a mean of 8, resulting in $\mathbf{u}_x = (2, 2, \ldots, 2, 5, 5, \ldots, 5, 8, 8, \ldots, 8)$. The covariance matrix $\mathbf{\Sigma}_x$ adheres to an AR(1) structure with a correlation coefficient of $\rho = 0.6$, while $\sigma_x^2$ remains constant at 1. Interaction terms are created by multiplying selected pairs of continuous covariates, and polynomial features are generated by elevating some covariates to powers greater than 1. Regarding the response variable, there is an alternative setup of true signals, with 10, 5, and 5 non-zero coefficients associated with each of the three groups of variables respectively. The vector of true regression coefficients, $\boldsymbol{\beta}$, takes on values such as $\boldsymbol{\beta} = (6, 6, \ldots, 6, 4, 4, \ldots, 4, 3, 3, \ldots, 3, 0, 0, \ldots, 0)^T$. Additionally, categorical variables are introduced as binary indicators, and the error term variance is set at $\sigma_e^2 = 12$.
+
+  \subsection{Type 4}
+
+The *T4* dataset is characterised by grouping structures among continuous covariates, where covariates within each group are highly correlated, while covariates between different groups are independent. The mean vector for continuous covariates $\mathbf{u}_x$ is segmented into two groups: the first 30 variables have a mean of 3, and the remaining variables have a mean of 7, so $\mathbf{u}_x = (3, 3, \ldots, 3, 7, 7, \ldots, 7)$. The covariance matrix $\mathbf{\Sigma}_x$ is constructed as a block-diagonal matrix, where each block corresponds to a group, and within each block, the elements are highly correlated. The diagonal blocks can have a specific structure, such as AR(1), with high correlation coefficients (e.g., $\rho = 0.9$), while the off-diagonal blocks are matrices of zeros, indicating independence between groups. The vector of true regression coefficients, $\boldsymbol{\beta}$, is configured with non-zero values for selected entries corresponding to true signals within each group (e.g., 5 for each true signal), while the remaining entries are set to zero; $\boldsymbol{\beta} = (5, 5, \ldots, 5, 0, 0, \ldots, 0)^T$. Additionally, categorical variables are included as binary indicators, and the error term variance is set at $\sigma_e^2 = 10$.
+
+
+Four different dimensionality settings are considered under all four data types: $p(50) < n(200)$, reflecting a traditional setting with more observations than variables; $p(100) = n(100)$, representing a balanced case; $p(200) > n(150)$, indicative of high-dimensional scenarios such as in genomics; and $p(200) \gg n(50)$, where the number of variables substantially surpasses the number of observations. These settings enable comparisons within data types and offer insights into practical challenges regarding data availability and computation. The choice of $p$ and $n$ values is guided by computation time and an approximation to real-world data, where obtaining data can be costly. This structure facilitates a comprehensive analysis of various scenarios.
+
+\
+\
+**INCLUDE**:
+\
+\
+- Variations of error term etc to be adjusted still.
+\
+- Methods of evaluation, f.e. True Signals vs False, or ordering of feature importances as some methods don't shrink coefficients to exactly 0.
+\
+- Include the use of random seed for reproducibility, would maybe have to run several times as it would give sense of variability OR
+\
+- Number of simulations instead, as it would give an average of performance.
+\
+- Inlcude choice of hyperparameters
+\
+- Potentially include outliers?
+\
+
+\section{Real Data Study}
+
+\section{Results}
+
+\section{Discussion}
+
+\section{Appendix}
+
+\section{Bibliography}

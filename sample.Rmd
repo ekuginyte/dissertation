@@ -1,0 +1,26 @@
+---
+title: "as"
+author: "Erna Kuginyte"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+On a quest to find a more modern variable selection method within the Bayesian framework, here is presented the somewhat more recently adapted version of the Shotgun Stochastic Search (SSS) algorithm.  
+The SSS algorithm, introduced by Hans et al. [-@Hans2007], is designed to efficiently navigate high-dimensional model spaces in regression settings with a large number of candidate predictors, where $p \gg n$. Its primary objective is to swiftly pinpoint regions with high posterior probabilities and ascertain the maximum a posteriori (MAP) model. To achieve this, the algorithm amalgamates sparsity-inducing priors promoting parsimony, temperature control akin to that used in global optimisation algorithms like simulated annealing [@Vecchi1983], and screening techniques resembling Iterative Sure Independence Screening [@Fan2008]. Furthermore, SSS exploits parallel computation to enhance performance on cluster computers.
+The MAP model, denoted $\hat{k}$, is formally defined as:
+\begin{equation}
+\hat{k} = \underset{k \in \Gamma^*}{\arg\max} \{\pi(k | y)\},
+\end{equation}
+where $\Gamma^*$ represents the set of models that are assigned non-zero prior probability.
+In its quest to traverse large model spaces and pinpoint global maxima efficiently, SSS algorithm defines $\text{nbd}(k) = \{\Gamma^+, \Gamma^-, \Gamma^0\}$, where $\Gamma^+ = \{k \cup \{j\} : j \in k^c\}$, $\Gamma^- = \{k \setminus \{j\} : j \in k\}$, and $\Gamma^0 = \{[k \setminus \{j\}] \cup \{l\} : l \in k^c, j \in k\}$. The *SSS* algorithm proceeds as follows:
+\begin{enumerate}
+    \item Select an initial model $k^{(1)}$.
+    \item For $i = 1$ to $i = N - 1$:
+    \begin{itemize}
+        \item Compute $\pi(k | y)$ for all $k \in \text{nbd}(k^{(i)})$.
+        \item Sample $k^+$, $k^-$, and $k^0$ from $\Gamma^+$, $\Gamma^-$, and $\Gamma^0$, 
+        respectively, with probabilities proportional to $\pi(k | y)$.
+        \item Sample $k^{(i+1)}$ from $\{k^+, k^-, k^0\}$, with probability proportional to $\{\pi(k^+ | y), \pi(k^- | y), \pi(k^0 | y)\}$.
+    \end{itemize}
+\end{enumerate}
+The MAP model is determined as the model with the highest unnormalised posterior probability among  those models searched by SSS.
