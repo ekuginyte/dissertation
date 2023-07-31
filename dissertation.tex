@@ -115,32 +115,21 @@
 
 \noindent 
 
-\hfill\break
-Freq. Lasso\\
-Freq. Elastic Net\\
-ML XGboost\\
-Bayes. Spike and Slab Prior\\
-Bayes. Horsehoe Prior (two packages)\\
-Bayes. Horseshoe Prior +\\
-Bayes. Spike and Slab Lasso\\
-Bayes. Bayesian Lasso\\
-Bayes. Laplace Approximation\\
-Bayes. Shotgun Stochastic Search\\
-\strut \\
 \textbf{Include result summary!}\\
 This study explores the challenges inherent in variable selection for
 linear models in Bayesian statistics, particularly in
 high-dimensionality settings using R packages. The term
-``high-dimensionality'' here refers to contexts involving many
-predictors that are fewer, equal to, or greater than the number of data
-points. Frequentist penalised regression methods LASSO and Elastic Net,
-and XGBoost Machine Learning methods are initially used to establish a
+`high-dimensionality' here refers to contexts involving many predictors
+that are fewer, equal to, or greater than the number of data points.
+Frequentist penalised regression LASSO and Elastic Net methods and the
+Machine Learning XGBoost method are initially used to establish a
 benchmark. Subsequently, the Bayesian methods used include the Bayesian
 Lasso, Spike and Slab prior, Horseshoe priors, Laplace Approximation,
 and the recently revised Shotgun Stochastic Search with Screening. The
 packages that involve the same methodology are compared to establish
-user-friendliness. The thesis compares the methodology using simulated
-scenarios and the socioeconomic crime dataset.\\
+user-friendliness and get insights into different approaches. The thesis
+compares the methodology using simulated scenarios and the socioeconomic
+crime dataset.
 
 \newpage
 
@@ -329,8 +318,9 @@ outlined to facilitate familiarity with the concepts:
 
 \subsection{Prior Distribution}
 
-The following three sub-chapters are heavily based on Joseph C. Watkins
-``Theory of Statistics'' lecture notes from the University of Arizona.
+The following three sub-chapters are heavily based on Watkins `Theory of
+Statistics' (\protect\hyperlink{ref-Watkins2010}{2010}) lecture notes
+from the University of Arizona.
 
 Firstly, a realisation of random variables on a sample space \(X\) is
 observed, represented as
@@ -348,16 +338,17 @@ bijective. For a chosen parameter \(\theta \in \Omega\), the
 distribution of the observations and the expectation are denoted by
 \(P_\theta\) and \(E_\theta\), respectively.
 
-As mentioned in the Chapters XX above, \emph{prior distribution} can be
+As mentioned in the Chapter XX, \emph{prior distribution} can be
 informed using additional data, expert knowledge, elicitation
 techniques, or sometimes, it may be challenging to define. (mention
-uninformative priors) In Bayesian statistics, \((X, \Theta)\) is
-considered as a pair of random variables with an associated state space
-\(X \times \Omega\). The distribution, \(\mu\) of \(\Theta\) over
-\(\Omega\), is called the \emph{prior distribution}. The joint
-distribution of \((X, \Theta)\) is determined by the prior distribution
-in conjunction with the family \(\{P_\theta : \theta \in \Omega\}\):
-\begin{equation}
+uninformative priors)
+
+In Bayesian statistics, \((X, \Theta)\) is considered as a pair of
+random variables with an associated state space \(X \times \Omega\). The
+distribution, \(\mu\) of \(\Theta\) over \(\Omega\), is called the
+\emph{prior distribution}. The joint distribution of \((X, \Theta)\) is
+determined by the prior distribution in conjunction with the family
+\(\{P_\theta : \theta \in \Omega\}\): \begin{equation}
 \Pr\{(X,\Theta) \in B\} = \int \int I_B(x,\theta) \mu_{X|\Theta}(dx|\theta) \mu_{\Theta}(d\theta).
 \end{equation} Here, \(\mu_{X|\Theta}(\cdot|\theta)\) represents the
 distribution of \(X\) under \(P_{\theta}\).
@@ -367,11 +358,13 @@ distribution of \(X\) under \(P_{\theta}\).
 Consider the scenario where \(\mu_{\Theta}\) has density \(f_{\Theta}\)
 and \(\mu_{X|\Theta}(\cdot|\theta)\) has density \(f_{X|\Theta}\) with
 respect to the Lebesgue measure. The probability is then:
+
 \begin{equation}
 \Pr\{(X,\Theta) \in B\} = \int\int I_B(x,\theta)f_{X|\Theta}(x|\theta)f_{\Theta}(\theta) \,dx \,d\theta.
 \end{equation} The Lebesgue measure, here, serves as a standard way of
 assigning a length, area, or volume to subsets of a Euclidean space and
-is fundamental in integration theory.\\
+is fundamental in integration theory.
+
 After observing \(X = x\), the conditional density of \(\Theta\) given
 \(X = x\) using \emph{Bayes' theorem}, the \emph{posterior distribution}
 \(f_{\Theta|X}(\theta|x)\) is given as:
@@ -388,13 +381,13 @@ posterior density integrates to 1.
 
 The likelihood function \(f_{X|\Theta}(x|\theta)\) evaluates how
 probable the observed data \(x\) is under various parameter values
-\(\theta\). Unlike the \emph{prior distribution}, the likelihood
-function depends solely on the data and quantifies the support it
-provides for various parameter values. It is important to note that the
-likelihood function is not a probability distribution over \(\theta\).
-That is, it does not provide probabilities for different parameter
-values but rather gives a measure of how well each parameter value
-\(\theta\) is supported by the data.
+\(\theta\). Unlike the prior distribution, the likelihood function
+depends solely on the data and quantifies the support it provides for
+various parameter values. It is important to note that the likelihood
+function is not a probability distribution over \(\theta\). That is, it
+does not provide probabilities for different parameter values but rather
+gives a measure of how well each parameter value \(\theta\) is supported
+by the data.
 
 Here, it is also important to mention that Bayesian inference obeys The
 Likelihood principle, according to which, different probability models
@@ -404,16 +397,16 @@ posterior through the likelihood function \(f(x|\theta)\), while the
 prior remains independent of the data. Experimental variations are
 irrelevant for inference about \(\theta\).
 
-The posterior distribution synthesises all available information
+The \emph{posterior distribution} synthesises all available information
 regarding the parameter of interest. However, deriving analytical
-summaries, such as the posterior distribution's mean or variance, often
-requires evaluating complex integrals. The evaluation can be incredibly
-challenging for high-dimensional posterior distributions. Monte Carlo
-integration, a simulation technique, offers an effective solution for
-estimating these integrals. Within Monte Carlo integration, Markov Chain
-Monte Carlo (MCMC) methodology is a powerful tool for approximating
-posterior summary statistics, the application of this methodology is
-defined in the following Chapter.
+summaries, such as the \emph{posterior distribution's} mean or variance,
+often requires evaluating complex integrals. The evaluation can be
+incredibly challenging for high-dimensional posterior distributions.
+Monte Carlo integration, a simulation technique, offers an effective
+solution for estimating these integrals. Within Monte Carlo integration,
+Markov Chain Monte Carlo (MCMC) methodology is a powerful tool for
+approximating posterior summary statistics, the application of this
+methodology is defined in the following Chapter.
 
 \subsection{MCMC Algorithm}
 
@@ -434,14 +427,14 @@ only on \(\theta^n\):
 \theta^{n+1} \sim P(\theta^n, \theta^{n+1}) \, (\equiv P(\theta^{n+1}|\theta^n)).
 \end{equation}
 
-Under the conditions of aperiodicity and irreducibility, the
-\emph{Markov chain} attains a stationary distribution, independent of
-initial values. After discarding initial states, the remaining states
-serve as dependent samples from the target posterior distribution. It is
-essential to ensure sufficient iterations for convergence and an
-adequate post-convergence sample size for minimal \emph{Monte Carlo}
-errors. The complexity of the posterior distribution does not
-significantly affect the simplicity of state updates in the chain.
+Under the conditions of aperiodicity and irreducibility, the Markov
+chain attains a stationary distribution, independent of initial values.
+After discarding initial states, the remaining states serve as dependent
+samples from the target posterior distribution. It is essential to
+ensure sufficient iterations for convergence and an adequate
+post-convergence sample size for minimal Monte Carlo errors. The
+complexity of the posterior distribution does not significantly affect
+the simplicity of state updates in the chain.
 
 Determining the number of initial states to discard, known as burn-in,
 is crucial to ensure that the Markov Chain has converged to the
@@ -449,19 +442,18 @@ stationary distribution. Two common approaches to assess burn-in are
 through trace plots and the Brooks-Gelman-Rubin (BGR) diagnostic.
 
 The number of iterations after burn-in is essential to estimate the
-summary statistics accurately, and it is important to evaluate the
-\emph{Monte Carlo} error. A common approach to estimating the
-\emph{Monte Carlo} error involves batching. The chain is divided into
-\(m\) batches, each of length \(T\), so that \(n = mT\). Let
-\(\theta_1,\ldots,\theta_m\) be the sample means for each batch, and
-\(\theta\) denote the mean overall \(n\) samples. The batch means
-estimate of \(\sigma^2\) is then,
+summary statistics accurately, and it is important to evaluate the Monte
+Carlo error. A common approach to estimating the Monte Carlo error
+involves batching. The chain is divided into \(m\) batches, each of
+length \(T\), so that \(n = mT\). Let \(\theta_1,\ldots,\theta_m\) be
+the sample means for each batch, and \(\theta\) denote the mean overall
+\(n\) samples. The batch means estimate of \(\sigma^2\) is then,
 
 \begin{equation}
 \hat{\sigma}^2 = \frac{T}{m - 1} \sum_{i=1}^{m}(\bar{\theta}_i - \bar{\theta})^2.
 \end{equation}
 
-An estimate of the \emph{Monte Carlo} error is
+An estimate of the Monte Carlo error is
 \(\sqrt{\frac{\hat{\sigma}^2}{n}}\). The efficiency of the Markov chain
 in exploring the parameter space can be evaluated using the
 autocorrelation function (ACF). The ACF is the correlation of a
@@ -487,21 +479,39 @@ the autocorrelation of the \emph{MCMC} sample. It is used primarily to
 alleviate storage or memory issues but should be used judiciously as
 information is lost in the discarded samples.
 
-The description above lays the foundation of MCMC algorithms, of which
-three are particularly prominent: Gibbs sampling, Metropolis-Hastings,
-and Importance/Rejection sampling. The first two will be described in
-more detail. The subsequent Chapter XX will introduce an advanced
-extension to the MCMC, namely the Reversible Jump MCMC method involving
-Gibbs sampling, which is the most relevant to this paper.
+The description above lays the foundation of \emph{MCMC} algorithms, of
+which three are particularly prominent: Gibbs sampling,
+Metropolis-Hastings, and Importance/Rejection sampling.
 
-\textbf{CONVERGENCE OF MCMC}
+Deciding the number of iterations for a Markov chain involves two key
+considerations: the chain's convergence to the stationary distribution
+and the required sample size for small Monte Carlo errors
+post-convergence.The convergence process, referred to as `burn-in',
+discards the initial iterations of the chain until a stable mean is
+achieved. Various techniques, including trace plots and multiple
+replications, help ascertain the burn-in length. The Brooks-Gelman-Rubin
+method uses an analysis of variance to assess the similarity of
+estimates from different starting points. After convergence, the
+subsequent sample size is determined to minimise Monte Carlo errors.
+Batching is a standard method for dividing the chain into distinct
+batches to yield reliable sample mean estimates. The autocorrelation
+function (ACF) can also be employed to analyse the chain's performance
+by exploring the parameter space. Finally, `thinning', or selectively
+storing every \(k_{th}\) realisation of the chain, helps reduce the
+autocorrelation of the Markov Chain Monte Carlo (MCMC) sample and manage
+memory allocation effectively.
+
+Chapter XX will introduce an advanced extension to the MCMC, namely the
+Reversible Jump MCMC method involving Gibbs sampling, which is the most
+relevant to this paper.
 
 \newpage
 
 \section{The Setting}
   \subsection{Linear Regression in High-Dimensional Setting}
 
-The multivariate linear regression model is described as follows:
+The thesis explores the multivariate linear regression model, described
+as follows:
 
 \begin{equation}
 \mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}, \quad \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \sigma^2\mathbf{I}_n)
@@ -521,7 +531,7 @@ equal to, exceeds, or greatly exceed the number of data points.
 
 \subsection{Variable Selection Problem}
 
-Variable selection seeks the optimal subset of predictors and
+\emph{Variable selection} seeks the optimal subset of predictors and
 coefficients to drive the most fitting model for the data. However, it
 is essential to remember that the ``best'' model does not claim to
 uncover the absolute truth about the underlying natural processes, which
@@ -571,14 +581,8 @@ personal understanding.
 
 \subsection{AIC}
 
-The following three sections rely on \emph{`Bayesian Data Analysis'} by
-Gelman et al. (\protect\hyperlink{ref-Gelman2020}{Gelman et al., 2020}).
-
-The concept of AIC must first be introduced in order to establish a
-foundation for understanding several subsequent criteria in Bayesian
-Inference, and to enable comparisons among them. AIC favours models with
-good predictive capabilities, penalising those with more parameters,
-thereby discouraging overfitting.
+The following three sections rely on `Bayesian Data Analysis' by Gelman
+et al. (\protect\hyperlink{ref-Gelman2020}{2020}).
 
 In statistical literature, inference for \(\theta\) is typically
 summarised using a point estimate, \(\hat{\theta}\), rather than the
@@ -601,17 +605,19 @@ on the MLE, according to the formula:
 \text{AIC} = -2 \log p(y|\hat{\theta}_{\text{mle}}) + 2k.
 \end{equation}
 
-Though \emph{AIC's} bias correction is applicable in normal linear
-models with known variance and uniform priors, it is not adequate in
-Bayesian models. In such cases, the penalty of \(k\) simply does not
-accurately represent the effective number of parameters. Hence, other
-criteria was introduced.
+AIC favours models with good predictive capabilities, penalising those
+with more parameters, thereby discouraging overfitting. Though
+\emph{AIC's} bias correction is applicable in normal linear models with
+known variance and uniform priors, it is not adequate in Bayesian
+models. In such cases, the penalty of \(k\) simply does not accurately
+represent the effective number of parameters. Hence, other criteria was
+introduced.
 
 \subsection{DIC}
 
-\emph{Deviance Information Criterion (DIC)} is, to some degree, a
-Bayesian version of \emph{AIC}, two changes are applied: the maximum
-likelihood estimate \(\hat{\theta}\) is replaced with the posterior mean
+\emph{DIC} is, to some degree, a Bayesian version of AIC, two changes
+are applied: the maximum likelihood estimate \(\hat{\theta}\) is
+replaced with the posterior mean
 \(\hat{\theta}_{\text{Bayes}} = E(\theta | y)\), while \(k\) is replaced
 with a data-based bias correction. The measure of predictive accuracy is
 then:
@@ -663,23 +669,20 @@ strength and robustness of the modelling process.
 
 \subsection{WAIC}
 
-The popularity of \emph{DIC} is primarily due to its ease of calculation
-and its inclusion in standard software, while \emph{WAIC}, which
-requires Monte Carlo estimation of predictive densities, can be
-significantly more challenging to implement robustly
+The popularity of DIC is mainly due to its simplicity and inclusion in
+standard software, while \emph{WAIC}, which requires Monte Carlo
+estimation of predictive densities, can be significantly more
+challenging to implement robustly
 (\protect\hyperlink{ref-Spiegelhalter2014}{Spiegelhalter et al., 2014}).
+\emph{WAIC} represents a more fully Bayesian approach designed to
+estimate the out-of-sample expectation. This approach begins with the
+computation of the log pointwise posterior predictive density, followed
+by adding a corrective measure for the effective number of parameters,
+mitigating potential overfitting.
 
-However, due to the extensive issues with \emph{DIC}, \emph{WAIC} was
-introduced as a counterpart. \emph{WAIC} represents a more fully
-Bayesian approach designed to estimate the out-of-sample expectation.
-This approach begins with the computation of the log pointwise posterior
-predictive density, followed by adding a corrective measure for the
-effective number of parameters, mitigating potential overfitting.
-
-Among two potential modifications considered, this thesis includes the
-more robust alternative, which involves calculating the variance of
-individual terms in the log predictive density, summed across all the
-\(n\) data points, given as,
+In this thesis, the robust modification is considered. The effective
+number of parameters is computed using the variance of individual terms
+in the log predictive density summed across all the \(n\) data points:
 
 \begin{equation}
 p_{WAIC2} = \sum_{i=1}^{n} \text{var}_{\text{post}}(\log p(y_i|\theta)).
@@ -707,9 +710,9 @@ Then use it for bias correction, as,
 \widehat{\text{elppd}}_{\text{WAIC}} = \text{lppd} - \text{p}_{\text{WAIC}}.
 \end{equation}
 
-Similar to \emph{AIC} and \emph{DIC}, the \emph{WAIC} is determined by
-multiplying the above-mentioned expression by negative two to align it
-with the deviance scale:
+Similar to AIC and DIC, the \emph{WAIC} is determined by multiplying the
+above-mentioned expression by negative two to align it with the deviance
+scale:
 
 \begin{equation}
 WAIC = -2\text{lppd} + 2\text{p}_{WAIC2},
@@ -717,21 +720,13 @@ WAIC = -2\text{lppd} + 2\text{p}_{WAIC2},
 
 with \(lppd\) computed as in XX and \(p_{WAIC2}\) in XX.
 
-In contrast to \emph{AIC} and \emph{DIC}, \emph{WAIC} favourably
-averages over the posterior distribution instead of relying on a single
-point estimate. This characteristic is particularly significant in a
-predictive framework as \emph{WAIC} assesses the actual predictions
-being made for new data in a Bayesian context. While \emph{AIC} and
-\emph{DIC} gauge the performance of the plug-in predictive density,
-Bayesian applications of these metrics still employ the posterior
-predictive density for forecasting.
-
-\emph{AIC}, \emph{DIC}, and \emph{WAIC} all aim to estimate the same
-thing: the expected out-of-sample deviance of a model, which can be
-considered as different versions of cross-validation. On the other hand,
-\emph{BIC} diverges by being motivated not by predictive fit estimation
-but by the objective of approximating the marginal probability density
-of the data under the model, pertinent in the context of discrete model
+Unlike \emph{AIC} and \emph{DIC}, which gauge the plug-in predictive
+density's performance, \emph{WAIC} assesses predictions for new data in
+a Bayesian context by averaging over the posterior distribution. While
+\emph{AIC}, \emph{DIC}, and \emph{WAIC} aim to estimate the expected
+out-of-sample deviance of a model, akin to versions of cross-validation,
+BIC focuses on approximating the marginal probability density of the
+data under the model, pertinent in the context of discrete model
 comparison.
 
 \subsection{Bayes’ Factor}
@@ -757,22 +752,21 @@ posterior estimates (\protect\hyperlink{ref-Hoeting1999}{Hoeting et al.,
 1999}).
 
 Evaluating \emph{Bayes factors} is challenging due to the difficulty in
-computing marginal likelihoods for each model. \emph{MCMC} methods offer
-a solution but necessitate careful handling of varying parameter numbers
+computing marginal likelihoods for each model. MCMC methods offer a
+solution but necessitate careful handling of varying parameter numbers
 to ensure ergodicity in the Markov chain. Carlin and Chib
 (\protect\hyperlink{ref-Carlin1995}{1995}) presented a method involving
 a global model with `pseudo-priors' for all parameters. Green's
-(\protect\hyperlink{ref-Green1995}{1995}) \emph{Reversible Jump MCMC
-(RJMCMC)} employs auxiliary variables to manage model dimension changes.
-However, defining pseudo-priors or auxiliary variables can be
-challenging and is an area of ongoing research. Barker \& Link
+(\protect\hyperlink{ref-Green1995}{1995}) Reversible Jump MCMC (RJMCMC)
+employs auxiliary variables to manage model dimension changes. However,
+defining pseudo-priors or auxiliary variables can be challenging and is
+an area of ongoing research. Barker \& Link
 (\protect\hyperlink{ref-Barker2013}{2013}) introduced a simplified
-\emph{RJMCMC} approach compatible with Gibbs sampling. Chapter XX
-discusses Barker \& Link's approach, its integration with prior
-\emph{MCMC} results, and introduces the \emph{RJMCMC} algorithm along
-with the \texttt{rjmcmc} R package that facilitates \emph{Bayes factor}
-and posterior model probability calculations using \emph{RJMCMC}
-outputs.
+RJMCMC approach compatible with Gibbs sampling. Chapter XX discusses
+Barker \& Link's approach, its integration with prior MCMC results, and
+introduces the RJMCMC algorithm along with the \emph{`rjmcmc'} package
+that facilitates \emph{Bayes factor} and posterior model probability
+calculations using RJMCMC outputs.
 
 \subsection{RJMCMC}
 
@@ -782,7 +776,7 @@ explored. The RJMCMC refines the Metropolis-Hastings algorithm by
 facilitating the constructed Markov chain traversing varying dimensions.
 
 As this methodology is still very much under development, the outline is
-based on the work of Gelling, Schofield and Barker for the R package
+based on the work of Gelling, Schofield and Barker for the package
 \emph{`rjmcmc'} (\protect\hyperlink{ref-Gelling2019}{Gelling et al.,
 2019}). Barker and Link (\protect\hyperlink{ref-Barker2013}{2013})
 introduced a modified version of
@@ -926,12 +920,12 @@ parameter, which tells what values are plausible given the data and the
 model. In the classical approach to statistical analysis, variable
 selection typically hinges on point estimates of parameters, which are
 then subjected to hypothesis testing to determine their significance
-(\protect\hyperlink{ref-Krantz1999}{Krantz, 1999}). Notably, a
-\emph{p-value}, standing alone, does not constitute a robust measure of
-evidence in support of a particular model or hypothesis, which may lead
-to misinterpretation (often among non-statisticians) around direct
-evidence about the null hypothesis
-(\protect\hyperlink{ref-Tanha2017}{Tanha et al., 2017}).
+(\protect\hyperlink{ref-Krantz1999}{Krantz, 1999}). Notably, a p-value,
+standing alone, does not constitute a robust measure of evidence in
+support of a particular model or hypothesis, which may lead to
+misinterpretation (often among non-statisticians) around direct evidence
+about the null hypothesis (\protect\hyperlink{ref-Tanha2017}{Tanha et
+al., 2017}).
 
 \subsection{Penalised Regression Methods}
 
@@ -939,7 +933,7 @@ In penalised regression methods, a penalty term is added to the
 log-likelihood function to enforce a trade-off between bias and variance
 in regression coefficients, consequently optimising prediction error.
 
-\textbf{Least Absolute Shrinkage and Selection Operator (LASSO)}
+\textbf{Least Absolute Shrinkage and Selection Operator (Lasso)}
 incorporates the \emph{L1-norm}, originally proposed by Tibshirani
 (\protect\hyperlink{ref-Tibshirani1996}{1996}), of regression
 coefficients (excluding the intercept) as the penalty term:
@@ -951,8 +945,8 @@ coefficients (excluding the intercept) as the penalty term:
 This penalisation shrinks coefficients toward zero and sets those with a
 negligible predictive contribution to zero, serving as an embedded
 feature selection method. When the number of predictors, \(p\), exceeds
-the number of observations, \(n\), \emph{LASSO} selects at most \(n\)
-variables. \emph{LASSO} does not group predictors, often arbitrarily
+the number of observations, \(n\), \emph{Lasso} selects at most \(n\)
+variables. \emph{Lasso} does not group predictors, often arbitrarily
 selecting one from a group of highly correlated predictors.
 
 \textbf{Ridge regression} employs the L2-norm of regression coefficients
@@ -969,9 +963,9 @@ predictions. Note that since the penalty term is the sum of squared
 coefficients, shrinkage would not be fair across predictors with
 different scales. Hence, they need to be standardised.
 
-\textbf{Elastic Net} combines the L1-norm and L2-norm penalties, the
-method first proposed by Zuo and Hastie
-(\protect\hyperlink{ref-Zuo2005}{\textbf{Zuo2005?}}):
+\textbf{Elastic Net} combines the \emph{L1-norm} and \emph{L2-norm}
+penalties, the method first proposed by Zou and Hastie
+(\protect\hyperlink{ref-Zou2005}{2005}):
 
 \begin{equation}
 - \log L + \lambda_1 \sum_{j=1}^{p} |\beta_j| + \lambda_2 \sum_{j=1}^{p} \beta_j^2, \quad \lambda_1, \lambda_2 > 0.
@@ -983,13 +977,13 @@ The combination of penalties can also be expressed as:
 \lambda \left( \alpha \sum_{j=1}^{p} |\beta_j| + \frac{1-\alpha}{2} \sum_{j=1}^{p} \beta_j^2 \right), \quad \lambda > 0, \ 0 \leq \alpha \leq 1.
 \end{equation}
 
-Here, \(\alpha\) controls the mixing of \emph{LASSO} and \emph{Ridge}
+Here, \(\alpha\) controls the mixing of \emph{Lasso} and \emph{Ridge}
 penalties, and \(\lambda\) regulates the overall strength of
 regularisation.
 
 The \emph{`glmnet'} package in R provides efficient procedures for
 fitting generalised linear and similar models using penalised maximum
-likelihood, allowing for lasso or elastic-net regularisation with a
+likelihood, allowing for Lasso or elastic-net regularisation with a
 spectrum of lambda values, and includes capabilities for prediction,
 plotting, and cross-validation, even for sparse datasets.
 
@@ -1002,33 +996,34 @@ plotting, and cross-validation, even for sparse datasets.
 \caption{Penalised Regression}\label{fig:penalisation graphics}
 \end{figure}
 
-Despite its proven efficacy, the original Lasso method has certain
-constraints. Tibshirani (\protect\hyperlink{ref-Tibshirani1996}{1996})
-noted that ridge regression surpasses Lasso when dealing with
-multicollinearity among predictors. In situations with more predictors
-than observations, namely \(p > n\), Lasso's convex optimisation limits
-it to selecting no more than n variables. Moreover, it disregards any
-meaningful feature ordering and struggles to effectively select highly
-correlated grouped variables, tending to choose individual ones instead.
-Later, Meier et al.
-(\protect\hyperlink{ref-Merier2008}{\textbf{Merier2008?}}) introduced
-algorithms designed for extremely high-dimensional problems to solve
-convex optimisation issues. They demonstrated that the group lasso
-estimator for logistic regression remains statistically consistent with
-a sparse true underlying structure, even when the number of predictors
-significantly outnumbers the observations \(p >> n\).
+Despite its proven efficacy, the original \emph{Lasso} method has
+certain constraints. Tibshirani
+(\protect\hyperlink{ref-Tibshirani1996}{1996}) noted that ridge
+regression surpasses \emph{Lasso} when dealing with multicollinearity
+among predictors. In situations with more predictors than observations,
+namely \(p > n\), Lasso's convex optimisation limits it to selecting no
+more than \(n\) variables. Moreover, it disregards any meaningful
+feature ordering and struggles to effectively select highly correlated
+grouped variables, tending to choose individual ones instead. Later,
+Meier et al. (\protect\hyperlink{ref-Merier2008}{\textbf{Merier2008?}})
+introduced algorithms designed for extremely high-dimensional problems
+to solve convex optimisation issues. They demonstrated that the group
+lasso estimator for logistic regression remains statistically consistent
+with a sparse true underlying structure, even when the number of
+predictors significantly outnumbers the observations \(p >> n\).
 
 \subsection{Machine Learning}
 
 In exploring variable selection methods, comparing frequentist and
 Bayesian inference approaches with a renowned machine learning method,
-\emph{XGBoost}, would offer valuable insights. \emph{XGBoost} introduced
-by Chen and Guestrin (\protect\hyperlink{ref-Chen2016}{2016}) is often
-cited for its outstanding performance in Kaggle competitions/ The method
-incorporates a feature importance mechanism, which, in simple terms,
-quantifies the contribution of individual attributes to the construction
-of decision trees within the ensemble
-(\protect\hyperlink{ref-Chen2016}{Chen \& Guestrin, 2016}).
+Extreme Gradient Boosting (\emph{XGBoost}), would offer valuable
+insights. \emph{XGBoost} introduced by Chen and Guestrin
+(\protect\hyperlink{ref-Chen2016}{2016}) is often cited for its
+outstanding performance in Kaggle competitions/ The method incorporates
+a feature importance mechanism, which, in simple terms, quantifies the
+contribution of individual attributes to the construction of decision
+trees within the ensemble (\protect\hyperlink{ref-Chen2016}{Chen \&
+Guestrin, 2016}).
 
 \emph{XGBoost} boasts exceptional scalability, enabling rapid processing
 on single machines and adept scaling to billions of examples in
@@ -1123,7 +1118,7 @@ Chapter XX.
 
 \subsubsection{Bayesian Lasso}
 
-Building on the frequentist penalised regression LASSO, which minimises
+Building on the frequentist penalised regression Lasso, which minimises
 the Residual Sum of Squares (RSS) subject to the non-differentiable
 constraint expressed in terms of earlier defined L1-norm of the
 coefficients, achieve:
@@ -1141,8 +1136,8 @@ normal distributions with independently exponentially distributed
 variances offers advantages. It prompted several researchers to adopt
 Laplace priors within a hierarchical Bayesian framework. This thesis
 discusses the one that the \emph{`monomvn'} package implements. Park and
-Casella (\protect\hyperlink{ref-Park2008}{\textbf{Park2008?}}) proposed
-Gibbs sampling for the LASSO, incorporating a Laplace prior within the
+Casella (\protect\hyperlink{ref-Casella2008}{2008}) proposed Gibbs
+sampling for the Lasso, incorporating a Laplace prior within the
 hierarchical model. They considered a fully Bayesian analysis using a
 conditional Laplace prior, as:
 
@@ -1155,12 +1150,13 @@ where the noninformative, scale-invariant marginal prior is
 asserts that it secures a unimodal full posterior. A lack of unimodality
 can hinder the convergence of the Gibbs sampler, thus rendering point
 estimates less reliable. Park and Casella
-(\protect\hyperlink{ref-Park2008}{\textbf{Park2008?}}) argue that the
-Bayesian Lasso offers a middle ground between Lasso and Ridge regression
-by providing smooth paths similar to Ridge but with a tendency to push
-less significant parameters towards zero faster, akin to Lasso. This
-behaviour suggests an edge of the Laplace prior over Gaussian or
-Student-t priors in rapidly diminishing weakly related parameters.
+(\protect\hyperlink{ref-Casella2008}{2008}) argue that the
+\emph{Bayesian Lasso} offers a middle ground between Lasso and Ridge
+regression by providing smooth paths similar to Ridge but with a
+tendency to push less significant parameters towards zero faster, akin
+to Lasso. This behaviour suggests an edge of the Laplace prior over
+Gaussian or Student-t priors in rapidly diminishing weakly related
+parameters.
 
 \begin{figure}
 
@@ -1171,8 +1167,8 @@ Student-t priors in rapidly diminishing weakly related parameters.
 \caption{Density Plots of Laplace Prior Distributions for Bayesian Lasso: Impact of tau}\label{fig:Bayesian Lasso Priors}
 \end{figure}
 
-The \emph{'monomvn'} package implements the Bayesian Lasso model using
-the Gibbs Sampling algorithm, as described by Park and Casella
+The \emph{'monomvn'} package implements the \emph{Bayesian Lasso} model
+using the Gibbs Sampling algorithm, as described by Park and Casella
 (\protect\hyperlink{ref-Park2008}{\textbf{Park2008?}}). It introduced a
 feature to use a Rao-Blackwellized sample of \(\sigma^2\), with
 \(\beta\) integrated out, to improve the mixing of the sampling
@@ -1180,14 +1176,14 @@ algorithm. A unique feature of this package is the inclusion of
 Reversible Jump (RJ) MCMC for Bayesian model selection and averaging,
 which allows users to determine the best model based on the columns of
 the design matrix and their corresponding \(\beta\) parameters. Unlike
-Hans (\protect\hyperlink{ref-Hans2009}{\textbf{Hans2009?}}) and Geweke
-(\protect\hyperlink{ref-Geweke1996}{\textbf{Geweke1996?}}) methods,
-which require a specific prior on each \(\beta_i\) and individual
-conditional sampling, this implementation maintains joint sampling from
-the full \(\beta\) vector of non-zero entries, thus facilitating better
-Markov chain mixing. It also allows RJ proposals to alter the count of
-non-zero entries on a component-wise basis, with high acceptance rates
-due to marginalised between-model moves.
+Hans (\protect\hyperlink{ref-Hans2009}{2009}) and Geweke
+(\protect\hyperlink{ref-Geweke1996}{1996}) methods, which require a
+specific prior on each \(\beta_i\) and individual conditional sampling,
+this implementation maintains joint sampling from the full \(\beta\)
+vector of non-zero entries, thus facilitating better Markov chain
+mixing. It also allows RJ proposals to alter the count of non-zero
+entries on a component-wise basis, with high acceptance rates due to
+marginalised between-model moves.
 
 \subsubsection{Spike and Slab Prior}
 
@@ -1304,12 +1300,12 @@ especially in high-dimensional problems.
 \subsubsection{Spike and Slab Prior Meets Lasso}
 
 Within the frequentist statistics, sparse recovery for \(\beta\) is
-often achieved through the LASSO, whereas in the Bayesian domain,
+often achieved through the Lasso, whereas in the Bayesian domain,
 \emph{spike-and-slab priors} are favoured for sparse modelling of
-\(\beta\). In the Bayesian framework, the \emph{spike-and-slab LASSO
+\(\beta\). In the Bayesian framework, the \emph{spike-and-slab Lasso
 (SSL)}, introduced by Ročková \& George
 (\protect\hyperlink{ref-Rockova2018}{2018}), bridges penalised
-likelihood LASSO method with the traditional \emph{spike-and-slab prior}
+likelihood Lasso method with the traditional \emph{spike-and-slab prior}
 approach, capitalising on the strengths of both while mitigating their
 drawbacks. The package \emph{'SSLASSO'} specifically implements
 \emph{SSL}, which uses a dynamic penalty that adjusts based on the level
@@ -1321,7 +1317,7 @@ uncertainty for the \emph{SSL}. The package primarily focuses on
 settings where \(p > n\).
 
 The methodology definition is based on Tadesse and Vannucci
-(\protect\hyperlink{ref-Tadesse2022}{2022}). The spike-and-slab LASSO
+(\protect\hyperlink{ref-Tadesse2022}{2022}). The spike-and-slab Lasso
 prior is given by:
 
 \begin{align*}
@@ -1349,46 +1345,47 @@ variance, placing an independent Jeffreys prior on \(\sigma^2\) where
 \end{figure}
 
 Setting \(\lambda_1 = \lambda_0\) results in the L1 penalty used in the
-LASSO. As \(\lambda_0 \rightarrow \infty\), the spike-and-slab LASSO
+Lasso. As \(\lambda_0 \rightarrow \infty\), the spike-and-slab Lasso
 approaches the ideal point-mass model. Therefore, the SSL prior allows
 for a non-concave continuum between penalised likelihood and point-mass
 constructs.
 
-The SSL prior, a mixture of two Laplace distributions, can be viewed as
-a two-group refinement of the L1 penalty in LASSO, leading to exactly
-sparse posterior modes for \(p(\beta | y)\), enabling simultaneous
-variable selection and parameter estimation. This offers an advantage
-over traditional spike-and-slab formulations, which often require post
-hoc thresholding. Although the original LASSO is known to suffer from
-estimation bias, SSL offers two key advantages, as demonstrated by
-Tadesse and Vannucci (\protect\hyperlink{ref-Tadesse2022}{2022}). First,
-it adaptively mixes two LASSO ``bias'' terms, applying either high
-shrinkage for small \(|\beta_i|\) or low shrinkage for large
-\(|\beta_i|\). Unlike the adaptive LASSO, which assigns fixed penalties,
-SSL adjusts the coefficient-specific penalties to extremes. Second, the
-prior on \(\theta\) introduces dependency in the marginal prior
-\(p(\beta)\) and non-separability in the SSL penalty, enabling SSL to
-borrow information across coordinates and adapt to sparsity information.
-The \emph{`SSLASSO'} package fits a set of models, each distinguished by
-the regularisation parameter \(\lambda_0\), using a coordinate descent
+The \emph{SSL} prior, a mixture of two Laplace distributions, can be
+viewed as a two-group refinement of the L1 penalty in Lasso, leading to
+exactly sparse posterior modes for \(p(\beta | y)\), enabling
+simultaneous variable selection and parameter estimation. This offers an
+advantage over traditional spike-and-slab formulations, which often
+require post hoc thresholding. Although the original Lasso is known to
+suffer from estimation bias, \emph{SSL} offers two key advantages, as
+demonstrated by Tadesse and Vannucci
+(\protect\hyperlink{ref-Tadesse2022}{2022}). First, it adaptively mixes
+two Lasso ``bias'' terms, applying either high shrinkage for small
+\(|\beta_i|\) or low shrinkage for large \(|\beta_i|\). Unlike the
+adaptive Lasso, which assigns fixed penalties, \emph{SSL} adjusts the
+coefficient-specific penalties to extremes. Second, the prior on
+\(\theta\) introduces dependency in the marginal prior \(p(\beta)\) and
+non-separability in the SSL penalty, enabling \emph{SSL} to borrow
+information across coordinates and adapt to sparsity information. The
+\emph{`SSLASSO'} package fits a set of models, each distinguished by the
+regularisation parameter \(\lambda_0\), using a coordinate descent
 algorithm. This algorithm utilises screening rules to exclude irrelevant
-predictors, adopting a similar approach to that proposed by Breheny
-(\protect\hyperlink{ref-Breheny2011}{\textbf{Breheny2011?}}).
+predictors, adopting a similar approach to that proposed by Breheny and
+Huang (\protect\hyperlink{ref-Breheny2011}{2011}).
 
 \subsubsection{Horseshoe Priors}
 
-The horseshoe prior was introduced by Carvalho, Polson, and Scott
-(\protect\hyperlink{ref-Carvalho2009}{\textbf{Carvalho2009?}}), who
-characterised it as multivariate-normal scale mixtures. They further
-modified the prior specification to set \(\lambda_i\) to be
-conditionally independent as further defined
-(\protect\hyperlink{ref-Carvalho2010}{Carvalho et al., 2010}). In the
-context of a p-dimensional vector
+The \textbf{horseshoe} prior was introduced by Carvalho, Polson, and
+Scott (\protect\hyperlink{ref-Carvalho2010}{2010}), who characterised it
+as multivariate-normal scale mixtures. They further modified the prior
+specification to set \(\lambda_i\) to be conditionally independent as
+further defined (\protect\hyperlink{ref-Carvalho2010}{Carvalho et al.,
+2010}). In the context of a p-dimensional vector
 \(y|\theta \sim N(\theta, \sigma^2I)\), when sparsity is assumed for
-\(\beta\), the Bayesian horseshoe prior, denoted as \(\pi_{HS}\), is
-applied. The assumption here is that each \(\beta_i\) is conditionally
-independent, each having a density of \(\pi_{HS} (\beta_i | \tau)\). The
-horseshoe prior is then formulated as follows:
+\(\beta\), the Bayesian \emph{horseshoe} prior, denoted as \(\pi_{HS}\),
+is applied. The assumption here is that each \(\beta_i\) is
+conditionally independent, each having a density of
+\(\pi_{HS} (\beta_i | \tau)\). The \emph{horseshoe} prior is then
+formulated as follows:
 
 \begin{align*}
 \beta_i | \lambda_i &\sim \mathcal{N}(0, \lambda_i^2), \quad \text{for } i = 1,\ldots,p, \\
@@ -1408,10 +1405,10 @@ Jeffreys' prior is employed for the variance, denoted by
 the prior for \(\tau\) also follows Jeffreys' treatment, scaled by
 \(\sigma\), the standard deviation of the error model.
 
-The horseshoe prior enforces sparsity on the regression coefficients
-\(\boldsymbol{\beta}\). Specifically, the posterior mean of each
-coefficient \(\beta_j\) can be expressed as a linear function of the
-corresponding observation \(y_i\):
+The \emph{horseshoe} prior enforces sparsity on the regression
+coefficients \(\boldsymbol{\beta}\). Specifically, the posterior mean of
+each coefficient \(\beta_j\) can be expressed as a linear function of
+the corresponding observation \(y_i\):
 
 \begin{equation}
 E(\beta_i|y_i) = y_i(1 - E(k_i|y_i)),
@@ -1419,12 +1416,12 @@ E(\beta_i|y_i) = y_i(1 - E(k_i|y_i)),
 
 where \(k_i\) represents the shrinkage coefficient. The half-Cauchy
 prior on \(\lambda_i\) induces a Beta\((\frac{1}{2}, \frac{1}{2})\)
-distribution for \(k_i\), which has a horseshoe shape. For
+distribution for \(k_i\), which has a \emph{horseshoe} shape. For
 \(k_i \approx 0\), there is negligible shrinkage representing signals,
 while for \(k_i \approx 1\), there is substantial shrinkage representing
 noise.
 
-The horseshoe prior has the property that it tends to shrink the
+The \emph{horseshoe} prior has the property that it tends to shrink the
 majority of the coefficients \(\beta_j\) towards zero, enforcing
 sparsity, while allowing some coefficients to remain large if they are
 indeed associated with the response variable: its flat, Cauchy-like
@@ -1433,8 +1430,8 @@ resulting in minimal post-hoc shrinkage. Simultaneously, its infinitely
 tall spike centred at the origin facilitates intense shrinkage for
 elements of \(\beta\) that are zero, effectively emphasising the sparse
 nature of the solution (\protect\hyperlink{ref-Carvalho2010}{Carvalho et
-al., 2010}). A notable advantage of the horseshoe prior is that it does
-not require user-specified hyperparameters as the priors for
+al., 2010}). A notable advantage of the \emph{horseshoe} prior is that
+it does not require user-specified hyperparameters as the priors for
 \(\lambda_i\), \(\tau\), and \(\sigma\) are fully defined. Figure XX
 showcases the horseshoe prior with three different magnitudes of the
 global shrinkage parameter. As visible from the plot, a smaller \(\tau\)
@@ -1450,12 +1447,10 @@ amplified global shrinkage effect.
 \caption{Density Plots of Horseshoe Distributions: Impact of tau}\label{fig:Horseshoe Priors}
 \end{figure}
 
-Horseshoe +
-
-The horseshoe+ estimator
-(\protect\hyperlink{ref-Bhadra2016}{\textbf{Bhadra2016?}}), an extension
+The \textbf{horseshoe+} estimator
+(\protect\hyperlink{ref-Bhadra2016}{Bhadra et al., 2016}), an extension
 of the horseshoe estimator, excels in ultra-sparse problems. In contrast
-to the horseshoe estimator, the horseshoe+ estimator has a lower
+to the horseshoe estimator, the \emph{horseshoe+} estimator has a lower
 posterior mean squared error and faster posterior concentration rates in
 terms of the Kullback--Leibler divergence metric. The prior distribution
 \(\pi_{HS+}\) for local shrinkage hyperparameters
@@ -1472,11 +1467,11 @@ creating an expanded hierarchy, as per
 \eta_i &\sim \mathcal{C}^+(0,1). \\
 \end{align}
 
-In both horseshoe and horseshoe+ models, the local shrinkage random
-effects \(\lambda_i\) are not marginally independent after the global
-shrinkage parameter \(\tau\) is considered. The horseshoe+ model further
-develops the concept by introducing an additional level of local
-shrinkage parameters \(\eta_i\) alongside \(\tau\), yielding
+In both horseshoe and \emph{horseshoe+} models, the local shrinkage
+random effects \(\lambda_i\) are not marginally independent after the
+global shrinkage parameter \(\tau\) is considered. The \emph{horseshoe+}
+model further develops the concept by introducing an additional level of
+local shrinkage parameters \(\eta_i\) alongside \(\tau\), yielding
 conditionally independent \(\lambda_i\). Integrating over \(\eta_i\)
 yields \(\lambda_i\)'s density:
 
@@ -1506,7 +1501,7 @@ As the usage of Horseshoe prior in Bayesian variable methodology is
 prominent, this thesis explores two R packages that employ it, namely
 \emph{`bayesreg'} and \emph{' horseshoe'} with some distinct features.
 
-\#Bayesreg package
+\hfill\break
 
 The \emph{'bayesreg'} package, introduced by Bhattacharya, Chakraborty
 and Mallick (\protect\hyperlink{ref-Bhattacharya2016}{2016}), fits
@@ -1531,7 +1526,7 @@ circumvents the computational and numerical accuracy challenges inherent
 in directly computing matrix inverses, particularly in high-dimensional
 settings.
 
-\#Horseshoe package
+\hfill\break
 
 The \emph{`horseshoe'} package allows for conducting sparse linear
 regression using the horseshoe prior, providing results such as
@@ -1551,18 +1546,18 @@ users to select methodological choices for handling the tau and error
 variance parameters. For tau, options include ``truncatedCauchy'' for
 full Bayes with a truncated Cauchy prior, ``halfCauchy'' for full Bayes
 with a half-Cauchy prior, or ``fixed'' for a fixed value approach,
-typically based on an empirical Bayes estimate. In this thesis, both are
-tested. Regarding the error variance \(\sigma^2\), options include
-``Jeffreys'' for full Bayes with Jeffrey's prior or ``fixed'' for a
+typically based on an empirical Bayes estimate. In this thesis, the
+first two are tested. Regarding the error variance \(\sigma^2\), options
+include `Jeffreys' for full Bayes with Jeffrey's prior or `fixed' for a
 fixed value, again typically based on an empirical Bayes estimate.
 
-\subsubsection{Shotgun Stochastic Search Algorithm}
+\subsubsection{Simplified Shotgun Stochastic Search Algorithm with Screening}
 
 On a quest to find a more modern variable selection method within the
 Bayesian framework, here is presented the somewhat more recently adapted
-version of SSS.
-
-The Shotgun Stochastic Search (SSS) algorithm, introduced by Hans et al.
+version of Shotgun Stochastic Search (\emph{SSS}). First, it is
+important to understand the original \emph{SSS} algorithm. The
+\emph{SSS}, introduced by Hans et al.
 (\protect\hyperlink{ref-Hans2007}{2007}), is designed to efficiently
 navigate high-dimensional model spaces in regression settings with a
 large number of candidate predictors, where \(p \gg n\). Its primary
@@ -1608,18 +1603,18 @@ The \emph{SSS} algorithm proceeds as follows:
 The MAP model is determined as the model with the highest unnormalised
 posterior probability among those models searched by SSS.
 
-\emph{S5}
+\textbf{Simplified Shotgun Stochastic Search with Screening}
 
 As the objective of this thesis is to blend statistical methodology with
 application, it is imperative to dissect the proposed computational
 tools. Over the years, the SSS algorithm has evolved, and a streamlined
 version incorporating screening has been developed and made available
-through the package Bayes5 (\protect\hyperlink{ref-Shin2015}{Shin et
-al., 2015}).
+through the package \emph{`Bayes5'}
+(\protect\hyperlink{ref-Shin2015}{Shin et al., 2015}).
 
-The Simplified Shotgun Stochastic Search with Screening (S5) algorithm
-is a modified version of the SSS designed to further enhance
-computational efficiency. S5 restricts its search to models in
+The Simplified Shotgun Stochastic Search with Screening (\emph{S5})
+algorithm is a modified version of the SSS designed to further enhance
+computational efficiency. \emph{S5} restricts its search to models in
 \(\Gamma^+\) and \(\Gamma^-\), thereby omitting the computationally
 intensive evaluation of marginal probabilities for models in
 \(\Gamma^0\). However, this focused search might lead the algorithm to
@@ -1627,11 +1622,12 @@ overlook certain high-posterior probability regions and risk settling in
 local maxima. To mitigate this, S5 introduces a temperature parameter,
 akin to simulated annealing, enabling broader exploration.
 
-Furthermore, S5 incorporates an Iterative Sure Independence Screening
-strategy to focus on variables highly correlated with the residuals of
-the current model. Specifically, it assesses \(|r_k^T X_j|\), where
-\(r_k\) is the residual of model \(k\), for \(j = 1, \ldots, p\), and
-prioritises variables for which this product is large.
+Furthermore, \emph{S5} incorporates an Iterative Sure Independence
+Screening strategy to focus on variables highly correlated with the
+residuals of the current model. Specifically, it assesses
+\(|r_k^T X_j|\), where \(r_k\) is the residual of model \(k\), for
+\(j = 1, \ldots, p\), and prioritises variables for which this product
+is large.
 
 In S5, \(S_k\) represents the union of variables in \(k\) and the top
 \(M_n\) variables obtained through residual-based screening. The
@@ -1691,11 +1687,10 @@ tested, thereby examining their robustness and adaptability under
 distinct circumstances.
 
 \hfill\break
-\hfill\break
 
-The \emph{Type 1} datasets consist of uncorrelated continuous covariates
-with a moderate level of noise. The covariates are simulated from a
-multivariate normal distribution:
+The \textbf{Type 1} datasets consist of uncorrelated continuous
+covariates with a moderate level of noise. The covariates are simulated
+from a multivariate normal distribution:
 
 \begin{equation}
 \mathbf{X} \sim \text{MVN}(\mathbf{u}_x, \sigma_x^2 \mathbf{\Sigma}_x),
@@ -1725,14 +1720,13 @@ intercept term is zero, and the errors (unexplained variability in the
 response variable) are normally distributed with \(\sigma_e^2 = 15\).
 
 \hfill\break
-\hfill\break
 
-The \emph{Type 2} dataset comprises continuous covariates with temporal
-correlation and moderate noise. The generation of the \emph{Type 2}
-dataset parallels the method utilised for the \emph{Type 1} dataset with
-certain distinctions. Specifically, the mean vector for the covariates
-\(\mathbf{u}_x\) is constructed such that the first 30 variables each
-have a mean of 3, and the rest have a mean of 7; that is,
+The \textbf{Type 2} dataset comprises continuous covariates with
+temporal correlation and moderate noise. The generation of the
+\textbf{Type 2} dataset parallels the method utilised for the \emph{Type
+1} dataset with certain distinctions. Specifically, the mean vector for
+the covariates \(\mathbf{u}_x\) is constructed such that the first 30
+variables each have a mean of 3, and the rest have a mean of 7; that is,
 \(\mathbf{u}_x = (3, 3, \ldots, 3, 7, 7, \ldots, 7)\). The covariance
 matrix of the covariates \(\mathbf{\Sigma}_x\) adheres to an
 autoregressive order 1, commonly refered to as AR(1), structure, with
@@ -1745,14 +1739,13 @@ thus, \(\boldsymbol{\beta} = (5, 5, \ldots, 5, 0, 0, \ldots, 0)^T\). The
 error term variance \(\sigma_e^2 = 10\).
 
 \hfill\break
-\hfill\break
 
-The \emph{Type 3} dataset is a rich blend of continuous and categorical
-covariates, including interaction terms and polynomial features, with
-moderate noise. In this setup, the mean vector for continuous covariates
-\(\mathbf{u}_x\) is segmented into three groups: the first 20 variables
-have a mean of 2, the next 30 have a mean of 5, and the remaining
-variables have a mean of 8, resulting in
+The \textbf{Type 3} dataset is a rich blend of continuous and
+categorical covariates, including interaction terms and polynomial
+features, with moderate noise. In this setup, the mean vector for
+continuous covariates \(\mathbf{u}_x\) is segmented into three groups:
+the first 20 variables have a mean of 2, the next 30 have a mean of 5,
+and the remaining variables have a mean of 8, resulting in
 \(\mathbf{u}_x = (2, 2, \ldots, 2, 5, 5, \ldots, 5, 8, 8, \ldots, 8)\).
 The covariance matrix \(\mathbf{\Sigma}_x\) adheres to an AR(1)
 structure with a correlation coefficient of \(\rho = 0.6\), while
@@ -1781,13 +1774,12 @@ expected response value when all covariates are at zero. Lastly, the
 error term variance is set at \(\sigma_e^2 = 12\).
 
 \hfill\break
-\hfill\break
 
-The \emph{Type 4} dataset is characterised by grouping structures among
-continuous covariates, where covariates within each group are highly
-correlated, while covariates between different groups are independent.
-The mean vector for continuous covariates \(\mathbf{u}_x\) is segmented
-into five groups,
+The \textbf{Type 4} dataset is characterised by grouping structures
+among continuous covariates, where covariates within each group are
+highly correlated, while covariates between different groups are
+independent. The mean vector for continuous covariates \(\mathbf{u}_x\)
+is segmented into five groups,
 i.e.~\(\mathbf{u}_x = (2, \ldots, 2, 4, \ldots, 4, 6, \ldots, 6, 8 \ldots, 8, 10, \ldots, 10)\).
 The vector of true regression coefficients corresponding to true signals
 within each group
@@ -1816,7 +1808,7 @@ more observations than variables; \(p(100) = n(100)\), representing a
 balanced case; \(p(200) > n(150)\), indicative of high-dimensional
 scenarios such as in genomics; and \(p(200) \gg n(50)\), where the
 number of variables substantially surpasses the number of observations.
-An additional configuration is proposed to better suit \emph{XGBoost's}
+An additional configuration is proposed to better suit XGBoost's
 strengths and establish a baseline performance capacity. While retaining
 the data generation methodology outlined earlier, a subsequent dataset
 is simulated with a modified proportion of data points to features,
@@ -1828,10 +1820,30 @@ where obtaining data can be costly. This structure facilitates a
 comprehensive analysis of various scenarios. For reference, for all data
 generation the reproducibility seed was set to \(42\).
 
-\subsection{Type 1}
+The packages \emph{'glmnet'}, \emph{'caret'}, \emph{'spikeslab'},
+\emph{'horseshoe'}, \emph{'SSLASSO'}, \emph{'monomvn'}, \emph{'BayesS5'}
+necessitate a matrix specification, where each column denotes a variable
+in the dataset, and each row represents an observation. If the data
+frame comprises only continuous variables, these are directly converted
+into a matrix. However, in the presence of categorical variables, these
+undergo a transformation. The constructed matrix integrates both the
+continuous and dummy variables representing each level of the
+categorical variables, excluding one level to avert the dummy variable
+trap, which could lead to multicollinearity. In contrast, the
+\emph{`bayesreg'} package requires data to be specified as a data frame.
+Consequently, categorical variables are retained in their original
+format, i.e., as factors, to be appropriately fitted within the model.
 
-XGBoost selection of variables requires to set a threshold. For feature
-importance list with weights, see Appendix XX.
+\subsection{Results}
+
+Three metrics are used to evaluate the performance of the introduced
+methodologies for the variable selection task: total signals (TS), false
+positives (FP), and false negatives (FN). TS is the count of covariates
+chosen by the method, FP quantifies the noise covariates wrongly
+identified as signals, while FN represents the missed true signal
+covariates.
+
+\subsection{Type 1}
 
 Add results of ceofficients and list which methods do not draw
 coefficients to exactly zero. Which methods include confidence intervals
@@ -1850,43 +1862,21 @@ Package & Method & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP
 \midrule
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Frequentist Methods}}\\
-\hspace{1em}glmnet & LASSO & 20 & 19 & 0 &  & 20 & 50 & 0 &  & 20 & 37 & 0 &  & 10 & 22 & 10\\
+\hspace{1em}glmnet & Lasso & 20 & 19 & 0 &  & 20 & 50 & 0 &  & 20 & 37 & 0 &  & 10 & 22 & 10\\
 \hspace{1em}glmnet & Elastic Net & 20 & 12 & 0 &  & 20 & 37 & 0 &  & 20 & 10 & 0 &  & 12 & 18 & 8\\
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Bayesian Methods}}\\
 \hspace{1em}spikeslab & Spike-and-Slab Prior & 20 & 20 & 0 &  & 20 & 79 & 0 &  & 20 & 117 & 0 &  & 12 & 12 & 8\\
-\hspace{1em}SSLASSO & Spike-and-Slab LASSO & 20 & 1 & 0 &  & 15 & 5 & 5 &  & 6 & 5 & 14 &  & 20 & 0 & 0\\
+\hspace{1em}SSLASSO & Spike-and-Slab Lasso & 20 & 1 & 0 &  & 15 & 5 & 5 &  & 6 & 5 & 14 &  & 20 & 0 & 0\\
 \hspace{1em}horseshoe & Horseshoe Prior, TC & 20 & 0 & 0 &  & 20 & 1 & 0 &  & 20 & 0 & 0 &  & 1 & 0 & 19\\
 \hspace{1em}horseshoe & Horseshoe Prior, HC & 20 & 0 & 0 &  & 20 & 1 & 0 &  & 20 & 0 & 0 &  & 0 & 0 & 20\\
 \hspace{1em}bayesreg & Horseshoe Prior & 20 & 0 & 0 &  & 20 & 1 & 0 &  & 20 & 0 & 0 &  & 7 & 5 & 13\\
 \hspace{1em}bayesreg & Horseshoe+ Prior & 20 & 0 & 0 &  & 20 & 1 & 0 &  & 20 & 0 & 0 &  & 8 & 5 & 12\\
 \hspace{1em}BayesS5 & S5 Method &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-\hspace{1em}monomvn & Bayesian LASSO &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\hspace{1em}monomvn & Bayesian Lasso &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
 \bottomrule
 \multicolumn{17}{l}{\textsuperscript{a} TS=True Signal, FP=False Positive, FN=False Negative}\\
 \multicolumn{17}{l}{\textsuperscript{b} p(50) < n(200), p(100) = n(100), p(200) > n(150), p(200) >> n(50)}\\
-\end{tabular}
-\end{table}
-
-\begin{table}[!h]
-
-\caption{\label{tab:Results XGBoost}Summary of XGBoost Results for All Simulated Data}
-\centering
-\fontsize{8.5}{10.5}\selectfont
-\begin{tabular}[t]{>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|}
-\toprule
-\multicolumn{1}{c}{ } & \multicolumn{4}{c}{p << n} & \multicolumn{4}{c}{p < n} & \multicolumn{4}{c}{p = n} & \multicolumn{3}{c}{p > n} & \multicolumn{4}{c}{p >> n} \\
-\cmidrule(l{3pt}r{3pt}){2-5} \cmidrule(l{3pt}r{3pt}){6-9} \cmidrule(l{3pt}r{3pt}){10-13} \cmidrule(l{3pt}r{3pt}){14-16} \cmidrule(l{3pt}r{3pt}){17-20}
-Data & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN\\
-\midrule
-Type 1 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-Type 2 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-Type 3 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-Type 4 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-Type 5 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-\bottomrule
-\multicolumn{20}{l}{\textsuperscript{a} TS=True Signal, FP=False Positive, FN=False Negative}\\
-\multicolumn{20}{l}{\textsuperscript{b} p(50) << n(500), p(50) < n(200), p(100) = n(100), p(200) > n(150), p(200) >> n(50)}\\
 \end{tabular}
 \end{table}
 
@@ -1907,18 +1897,18 @@ Package & Method & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP
 \midrule
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Frequentist Methods}}\\
-\hspace{1em}glmnet & LASSO & 20 & 0 & 0 &  & 20 & 9 & 0 &  & 20 & 6 & 0 &  & 20 & 7 & 0\\
+\hspace{1em}glmnet & Lasso & 20 & 0 & 0 &  & 20 & 9 & 0 &  & 20 & 6 & 0 &  & 20 & 7 & 0\\
 \hspace{1em}glmnet & Elastic Net & 20 & 0 & 0 &  & 20 & 0 & 0 &  & 20 & 0 & 0 &  & 20 & 2 & 0\\
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Bayesian Methods}}\\
 \hspace{1em}spikeslab & Spike-and-Slab Prior & 20 & 2 & 0 &  & 20 & 75 & 0 &  & 20 & 8 & 0 &  & 20 & 25 & 0\\
-\hspace{1em}SSLASSO & Spike-and-Slab LASSO & 17 & 0 & 3 &  & 8 & 0 & 12 &  & 1 & 0 & 19 &  & 13 & 0 & 7\\
+\hspace{1em}SSLASSO & Spike-and-Slab Lasso & 17 & 0 & 3 &  & 8 & 0 & 12 &  & 1 & 0 & 19 &  & 13 & 0 & 7\\
 \hspace{1em}horseshoe & Horseshoe Prior, TC & 20 & 0 & 0 &  & 20 & 2 & 0 &  & 20 & 0 & 0 &  & 3 & 0 & 17\\
 \hspace{1em}horseshoe & Horseshoe Prior, HC & 20 & 0 & 0 &  & 20 & 1 & 0 &  & 20 & 0 & 0 &  & 2 & 0 & 18\\
 \hspace{1em}bayesreg & Horseshoe Prior & 20 & 0 & 0 &  & 20 & 2 & 0 &  & 20 & 0 & 0 &  & 18 & 0 & 2\\
 \hspace{1em}bayesreg & Horseshoe+ Prior & 20 & 0 & 0 &  & 20 & 2 & 0 &  & 20 & 0 & 0 &  & 20 & 0 & 0\\
 \hspace{1em}BayesS5 & S5 Method &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-\hspace{1em}monomvn & Bayesian LASSO &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\hspace{1em}monomvn & Bayesian Lasso &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
 \bottomrule
 \multicolumn{17}{l}{\textsuperscript{a} TS=True Signal, FP=False Positive, FN=False Negative}\\
 \multicolumn{17}{l}{\textsuperscript{b} p(50) < n(200), p(100) = n(100), p(200) > n(150), p(200) >> n(50)}\\
@@ -1942,18 +1932,18 @@ Package & Method & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP
 \midrule
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Frequentist Methods}}\\
-\hspace{1em}glmnet & LASSO & 18 & 11 & 0 &  & 18 & 13 & 0 &  & 18 & 10 & 0 &  & 17 & 14 & 1\\
+\hspace{1em}glmnet & Lasso & 18 & 11 & 0 &  & 18 & 13 & 0 &  & 18 & 10 & 0 &  & 17 & 14 & 1\\
 \hspace{1em}glmnet & Elastic Net & 18 & 6 & 0 &  & 17 & 6 & 1 &  & 18 & 2 & 0 &  & 15 & 6 & 3\\
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Bayesian Methods}}\\
 \hspace{1em}spikeslab & Spike-and-Slab Prior & 17 & 10 & 1 &  & 18 & 82 & 0 &  & 18 & 19 & 0 &  & 9 & 36 & 9\\
-\hspace{1em}SSLASSO & Spike-and-Slab LASSO & 18 & 4 & 0 &  & 12 & 2 & 6 &  & 16 & 1 & 2 &  & 4 & 1 & 14\\
+\hspace{1em}SSLASSO & Spike-and-Slab Lasso & 18 & 4 & 0 &  & 12 & 2 & 6 &  & 16 & 1 & 2 &  & 4 & 1 & 14\\
 \hspace{1em}horseshoe & Horseshoe Prior, TC & 17 & 0 & 1 &  & 17 & 0 & 1 &  & 17 & 0 & 1 &  & 5 & 2 & 12\\
 \hspace{1em}horseshoe & Horseshoe Prior, HC & 17 & 0 & 1 &  & 17 & 0 & 1 &  & 17 & 0 & 1 &  & 5 & 1 & 12\\
 \hspace{1em}bayesreg & Horseshoe Prior & 18 & 1 & 0 &  & 18 & 1 & 0 &  & 18 & 1 & 0 &  & 0 & 0 & 0\\
 \hspace{1em}bayesreg & Horseshoe+ Prior & 18 & 0 & 0 &  & 18 & 2 & 0 &  & 18 & 0 & 0 &  & 10 & 5 & 8\\
 \hspace{1em}BayesS5 & S5 Method &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-\hspace{1em}monomvn & Bayesian LASSO &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\hspace{1em}monomvn & Bayesian Lasso &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
 \bottomrule
 \multicolumn{17}{l}{\textsuperscript{a} TS=True Signal, FP=False Positive, FN=False Negative}\\
 \multicolumn{17}{l}{\textsuperscript{b} p(50) < n(200), p(100) = n(100), p(200) > n(150), p(200) >> n(50)}\\
@@ -1977,21 +1967,48 @@ Package & Method & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP
 \midrule
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Frequentist Methods}}\\
-\hspace{1em}glmnet & LASSO & 17 & 10 & 0 &  & 17 & 3 & 0 &  & 17 & 6 & 0 &  & 16 & 9 & 1\\
+\hspace{1em}glmnet & Lasso & 17 & 10 & 0 &  & 17 & 3 & 0 &  & 17 & 6 & 0 &  & 16 & 9 & 1\\
 \hspace{1em}glmnet & Elastic Net & 17 & 3 & 0 &  & 17 & 2 & 0 &  & 16 & 5 & 1 &  & 16 & 10 & 1\\
 \addlinespace[0.3em]
 \multicolumn{17}{l}{\textbf{Bayesian Methods}}\\
 \hspace{1em}spikeslab & Spike-and-Slab Prior & 17 & 7 & 0 &  & 17 & 77 & 0 &  & 17 & 47 & 0 &  & 16 & 27 & 1\\
-\hspace{1em}SSLASSO & Spike-and-Slab LASSO & 15 & 5 & 2 &  & 8 & 2 & 9 &  & 12 & 4 & 5 &  & 1 & 0 & 16\\
+\hspace{1em}SSLASSO & Spike-and-Slab Lasso & 15 & 5 & 2 &  & 8 & 2 & 9 &  & 12 & 4 & 5 &  & 1 & 0 & 16\\
 \hspace{1em}horseshoe & Horseshoe Prior, TC & 16 & 0 & 1 &  & 16 & 0 & 1 &  & 16 & 0 & 1 &  & 2 & 0 & 15\\
 \hspace{1em}horseshoe & Horseshoe Prior, HC & 16 & 0 & 1 &  & 16 & 0 & 1 &  & 16 & 0 & 1 &  & 2 & 0 & 15\\
 \hspace{1em}bayesreg & Horseshoe Prior & 17 & 0 & 0 &  & 17 & 0 & 0 &  & 17 & 0 & 0 &  & 14 & 6 & 3\\
 \hspace{1em}bayesreg & Horseshoe+ Prior & 17 & 0 & 0 &  & 17 & 0 & 0 &  & 17 & 0 & 0 &  & 13 & 4 & 4\\
 \hspace{1em}BayesS5 & S5 Method &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
-\hspace{1em}monomvn & Bayesian LASSO &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\hspace{1em}monomvn & Bayesian Lasso &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
 \bottomrule
 \multicolumn{17}{l}{\textsuperscript{a} TS=True Signal, FP=False Positive, FN=False Negative}\\
 \multicolumn{17}{l}{\textsuperscript{b} p(50) < n(200), p(100) = n(100), p(200) > n(150), p(200) >> n(50)}\\
+\end{tabular}
+\end{table}
+
+\subsection{XGBoost}
+
+XGBoost selection of variables requires to set a threshold. For feature
+importance list with weights, see Appendix XX.
+
+\begin{table}[!h]
+
+\caption{\label{tab:Results XGBoost}Summary of XGBoost Results for All Simulated Data}
+\centering
+\fontsize{8.5}{10.5}\selectfont
+\begin{tabular}[t]{>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|>{}l|}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{4}{c}{p << n} & \multicolumn{4}{c}{p < n} & \multicolumn{4}{c}{p = n} & \multicolumn{3}{c}{p > n} & \multicolumn{4}{c}{p >> n} \\
+\cmidrule(l{3pt}r{3pt}){2-5} \cmidrule(l{3pt}r{3pt}){6-9} \cmidrule(l{3pt}r{3pt}){10-13} \cmidrule(l{3pt}r{3pt}){14-16} \cmidrule(l{3pt}r{3pt}){17-20}
+Data & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN &  & TS & FP & FN\\
+\midrule
+Type 1 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+Type 2 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+Type 3 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+Type 4 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+Type 5 &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\bottomrule
+\multicolumn{20}{l}{\textsuperscript{a} TS=True Signal, FP=False Positive, FN=False Negative}\\
+\multicolumn{20}{l}{\textsuperscript{b} p(50) << n(500), p(50) < n(200), p(100) = n(100), p(200) > n(150), p(200) >> n(50)}\\
 \end{tabular}
 \end{table}
 
@@ -2043,7 +2060,7 @@ employment candidate assessment. However, concerns have emerged
 regarding transparency, accountability, and fairness, specifically when
 these systems predicate their decisions on historical data. There exists
 a risk of perpetuating biases against certain demographic groups
-identified by ``sensitive attributes'', such as gender, age, race, or
+identified by `sensitive attributes', such as gender, age, race, or
 religion, should these groups have been historically correlated with
 higher risk factors (\protect\hyperlink{ref-Komiyama2018}{Komiyama et
 al., 2018}). Such variables refer to data that could be used to predict
@@ -2074,8 +2091,8 @@ is not explicitly employed in the model, and such indirect
 discrimination is also legally unacceptable.
 
 Likewise, Komiyama et al. (\protect\hyperlink{ref-Komiyama2018}{2018})
-has pointed out that the mere exclusion of the ``sensitive variables''
-is not sufficient. The publication further proposed the fairness of an
+has pointed out that the mere exclusion of the `sensitive variables' is
+not sufficient. The publication further proposed the fairness of an
 algorithm through a coefficient of determination (CoD) of the sensitive
 attributes as a constraint. The CoD measures the predictable proportion
 of the variance of an estimator from sensitive attributes, effectively
@@ -2471,6 +2488,11 @@ RJMCMC: A gibbs sampling approach. \emph{The American Statistician},
 \emph{67}(3), 150--156.
 \url{https://doi.org/10.1080/00031305.2013.791644}
 
+\leavevmode\vadjust pre{\hypertarget{ref-Bhadra2016}{}}%
+Bhadra, A., Datta, J., Polson, N. G., \& Willard, B. T. (2016).
+\emph{Default bayesian analysis with global-local shrinkage priors}.
+\url{https://doi.org/10.48550/arXiv.1510.03516}
+
 \leavevmode\vadjust pre{\hypertarget{ref-Bhattacharya2016}{}}%
 Bhattacharya, A., Chakraborty, A., \& Mallick, B. K. (2016). \emph{Fast
 sampling with gaussian scale-mixture priors in high-dimensional
@@ -2481,6 +2503,12 @@ Bradley, P. C., \& Chib, S. (1995). Bayesian model choice via markov
 chain monte carlo methods. \emph{Journal of the Royal Statistical
 Society: Series B (Methodological)}, \emph{57}, 473--484.
 \url{https://doi.org/10.1111/j.2517-6161.1995.tb02042.x}
+
+\leavevmode\vadjust pre{\hypertarget{ref-Breheny2011}{}}%
+Breheny, P., \& Huang, J. (2011). {Coordinate descent algorithms for
+nonconvex penalized regression, with applications to biological feature
+selection}. \emph{The Annals of Applied Statistics}, \emph{5}(1),
+232--253. \url{https://doi.org/10.1214/10-AOAS388}
 
 \leavevmode\vadjust pre{\hypertarget{ref-Carvalho2010}{}}%
 Carvalho, C. M., Polson, N. G., \& Scott, J. G. (2010). The horseshoe
@@ -2508,6 +2536,11 @@ Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., \&
 Rubin, D. B. (2020). \emph{Bayesian data analysis. Third edition} (pp.
 165--175).
 
+\leavevmode\vadjust pre{\hypertarget{ref-Geweke1996}{}}%
+Geweke, J. (1996). \emph{Variable selection and model comparison in
+regression} (Working Papers 539). Federal Reserve Bank of Minneapolis.
+\url{https://ideas.repec.org/p/fip/fedmwp/539.html}
+
 \leavevmode\vadjust pre{\hypertarget{ref-Green1995}{}}%
 Green, P. J. (1995). Reversible jump markov chain monte carlo
 computation and bayesian model determination. \emph{Biometrika},
@@ -2518,6 +2551,10 @@ Guo, R., Zhao, Z., Wang, T., Liu, G., Zhao, J., \& Gao, D. (2020).
 Degradation state recognition of piston pump based on ICEEMDAN and
 XGBoost. \emph{Applied Sciences}, \emph{10}, 6593.
 \url{https://doi.org/10.3390/app10186593}
+
+\leavevmode\vadjust pre{\hypertarget{ref-Hans2009}{}}%
+Hans, C. (2009). Bayesian lasso regression. \emph{Biometrika},
+\emph{96}(4), 835--845. \url{http://www.jstor.org/stable/27798870}
 
 \leavevmode\vadjust pre{\hypertarget{ref-Hans2007}{}}%
 Hans, C., Dobra, A., \& West, M. (2007). Shotgun stochastic search for
@@ -2620,6 +2657,11 @@ Moran, G. E., Ročková, V., \& George, E. I. (2019). Variance prior forms
 for high-dimensional bayesian variable selection. \emph{Bayesian
 Analysis}, \emph{14}. \url{https://doi.org/10.1214/19-BA1149}
 
+\leavevmode\vadjust pre{\hypertarget{ref-Casella2008}{}}%
+Park, T., \& Casella, G. (2008). The bayesian lasso. \emph{Journal of
+the American Statistical Association}, \emph{103}(482), 681--686.
+\url{https://doi.org/10.1198/016214508000000337}
+
 \leavevmode\vadjust pre{\hypertarget{ref-Polson2010}{}}%
 Polson, N. G., \& Scott, J. G. (2010). Shrink globally, act locally:
 Sparse bayesian regularization and prediction*. In \emph{Bayesian
@@ -2690,6 +2732,10 @@ feature selection method for high-dimensional data based on sort
 aggregation. \emph{Systems Science and Control Engineering}, \emph{7},
 32--39. \url{https://doi.org/10.1080/21642583.2019.1620658}
 
+\leavevmode\vadjust pre{\hypertarget{ref-Watkins2010}{}}%
+Watkins, J. C. (2010). \emph{Theory of statistics contents}. University
+of Arizona.
+
 \leavevmode\vadjust pre{\hypertarget{ref-Zafar2017}{}}%
 Zafar, M. B., Valera, I., Rodriguez, M. G., \& Gummadi, K. P. (2017).
 Fairness beyond disparate treatment \& disparate impact: Learning
@@ -2702,6 +2748,13 @@ World Wide Web Conference, WWW 2017}, 1171--1180.
 discrimination. \emph{Proceedings - IEEE International Conference on
 Data Mining, ICDM}, 992--1001.
 \url{https://doi.org/10.1109/ICDM.2011.72}
+
+\leavevmode\vadjust pre{\hypertarget{ref-Zou2005}{}}%
+Zou, H., \& Hastie, T. (2005). Zou h, hastie t. Regularization and
+variable selection via the elastic net. J r statist soc b.
+2005;67(2):301-20. \emph{Journal of the Royal Statistical Society:
+Series B (Statistical Methodology)}, \emph{67}, 301--320.
+\url{https://doi.org/10.1111/j.1467-9868.2005.00503.x}
 
 \end{CSLReferences}
 

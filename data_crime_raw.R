@@ -79,9 +79,7 @@ cols_with_na <- colSums(is.na(rows_with_na_indices))
 cols_to_remove <- c("countyCode", "communityCode", "rapes", "rapesPerPop", "robberies", "robbbPerPop", 
                     "assaults", "assaultPerPop", "burglaries", "burglPerPop", "larcenies", "larcPerPop", 
                     "autoTheft", "autoTheftPerPop", "arsons", "arsonsPerPop", "nonViolPerPop", "fold",
-                    "murders", "murdPerPop", "OwnOccQrange", "RentQrange", "state",
-                    # Sensitive variables
-                    "racepctblack", "PctForeignBorn")
+                    "murders", "murdPerPop", "OwnOccQrange", "RentQrange", "state")
 
 # Remove columns
 df <- df[, !(names(df) %in% cols_to_remove)]
@@ -114,21 +112,39 @@ rm(df_with_na_cols_with_na, rows_with_na_indices, cols_to_remove, cols_with_na,
 
 
 
-
 ################################################################################
-
-
 #### TRANSFORMING DATA ####
-
-#y <- df$y
-#y_trans <- log(y + 1)
-#df_trans <- log(df[, -dim(df)[2]] + 1)
 
 # Transform all data
 df_t <- log(df + 1)
 
 
 
+
+################################################################################
+#### ADDING INTERACTION TERMS ####
+# As from the linear model and correlation matrix, parents who have not married,
+#   is an important predictor. Interesting to see a similar relationship 
+#   for the divorce rates too.
+# Kids born to parents who are not married against demographic groups
+df_t$Black_KidsBornNeverMar_Int <- df_t$racepctblack * df_t$PctKidsBornNeverMar
+df_t$White_KidsBornNeverMar_Int <- df_t$racePctWhite * df_t$PctKidsBornNeverMar
+df_t$Asian_KidsBornNeverMar_Int <- df_t$racePctAsian * df_t$PctKidsBornNeverMar
+df_t$Hispanic_KidsBornNeverMar_Int <- df_t$racePctHisp * df_t$PctKidsBornNeverMar
+df_t$ForeignBorn_KidsBornNeverMar_Int <- df_t$PctForeignBorn * df_t$PctKidsBornNeverMar
+
+# Divorced against demographic groups
+df_t$Black_DivorcePct_Int <- df_t$racepctblack * df_t$TotalPctDiv
+df_t$White_DivorcePct_Int <- df_t$racePctWhite * df_t$TotalPctDiv
+df_t$Asian_DivorcePct_Int <- df_t$racePctAsian * df_t$TotalPctDiv
+df_t$Hispanic_DivorcePct_Int <- df_t$racePctHisp * df_t$TotalPctDiv
+df_t$ForeignBorn_DivorcePct_Int <- df_t$PctForeignBorn * df_t$TotalPctDiv
+
+# Save a standardised version to check if different variables are selected
+df_st <- scale(df_t) %>% data.frame()
+
+
+################################################################################
 #### EXPLORATORY ANALYSIS ####
 
 
@@ -148,10 +164,9 @@ for (i in 1:(ncol(df))) {
     theme_minimal()  
 }
 
-# Arrange the plots in a grid
-#do.call(grid.arrange, c(hist_list[c(1:6)], ncol = 3, nrow = 2))
 
 ## PLOTTING HISTOGRAMS TRANSFORMED DATA ##
+
 # Create a list to hold the plots
 hist_t_list <- list()
 
@@ -165,8 +180,6 @@ for (i in 1:(ncol(df_t))) {
     theme_minimal()  
 }
 
-# Arrange the plots in a grid
-#do.call(grid.arrange, c(hist_t_list[c(1:6)], ncol = 3, nrow = 2))
 
 ## PLOT INTERACTIONS WITH THE PREDICTION ##
 
@@ -181,11 +194,6 @@ for (i in 1:(ncol(df_t)-1)) {
     # Minimal theme of plopt
     theme_minimal() 
 }
-
-# Arrange the plots in a grid
-#do.call(grid.arrange, c(scatter_t_list[c(7:12)], ncol = 3, nrow = 2))
-
-
 
 
 ## PLOT BOXPLOTS ##
@@ -203,78 +211,57 @@ for (i in 1:(ncol(df_t))) {
     theme(axis.text.x = element_blank())  # Remove x-axis text
 }
 
-# Arrange the plots in a grid
-#do.call(grid.arrange, c(boxplot_t_list[c(19:24)], ncol = 3, nrow = 2))
-
-
-
-
 
 ## PLOT CORRELATION MATRIX ##
 
 # Calculate the correlation matrix
 cor_matrix <- cor(df_t)
 
-# Customize the corrplot
-#corrplot::corrplot(cor_matrix, 
-#                   method = "color",   # use colored cells
-#                   #type = "lower",     # only show the lower triangle of the matrix
-#                   addCoefasPercent = FALSE, # remove correlation coefficients
-#                   tl.pos = "n",       # remove text labels
-#                   mar = c(0,0,1,0),   # margins
-#                   col = colorRampPalette(c("lightblue4", "white", "violetred4"))(200) # color gradient from blue (negative) via white (neutral) to red (positive)
-#)
-
-#cor_s <- summary(cor_matrix)
-
-cor_df <- data.frame(cor_matrix)
-
-rownames(cor_df[abs(cor_df$y) > 0.4 & abs(cor_df$y) < 1, ])
-
-
 
 ## MULTICOLLINEARITY CHECK ##
 
 # Fit a linear model
-#model <- lm(y ~ ., data = df)
+model <- lm(y ~ ., data = df)
 
 # Calculate VIF
-#vif_values <- vif(model)
+vif_values <- vif(model)
 
 
 ## NORMALITY CHECKS ##
+
 # Apply Shapiro-Wilk test to each column
-#p_values <- apply(df_t, 2, function(x) shapiro.test(x)$p.value)
+p_values <- apply(df_t, 2, function(x) shapiro.test(x)$p.value)
 
 # Create a data frame of the results
-#results <- data.frame(Variable = names(p_values), P_Value = p_values)
+results <- data.frame(Variable = names(p_values), P_Value = p_values)
 #any(results$P_Value > 0.05)
 
 
 ## MISSING VALUES ##
 
-#check_data <- function(data) {
-#  # Loop over columns
-#  for (col in names(data)) {
-#    # Check if the column is numeric
-#    if (!is.numeric(data[[col]])) {
-#      stop(paste("Column", col, "is not numeric."))
-#    }
-#    # Check for missing values
-#    if (anyNA(data[[col]])) {
-#      stop(paste("Column", col, "contains missing values."))
-#    }
-#  }
-#  # If no problems found, print a success message
-#  print("All columns are numeric and contain no missing values.")
-#}
+check_data <- function(data) {
+  # Loop over columns
+  for (col in names(data)) {
+    # Check if the column is numeric
+    if (!is.numeric(data[[col]])) {
+      stop(paste("Column", col, "is not numeric."))
+    }
+    # Check for missing values
+    if (anyNA(data[[col]])) {
+      stop(paste("Column", col, "contains missing values."))
+    }
+  }
+  # If no problems found, print a success message
+  print("All columns are numeric and contain no missing values.")
+}
 
 # Does the data have any missing values?
-#check_data(df)
+#df_t_missing <- check_data(df_t)
 
 
 
 
+################################################################################
 #### OUTLIERS ####
 
 # Define a function to detect outliers based on the IQR
@@ -285,43 +272,43 @@ rownames(cor_df[abs(cor_df$y) > 0.4 & abs(cor_df$y) < 1, ])
 # OUTPUT:
 #         outlier_indices - indices of outliers.
 # 
-#detect_outliers_iqr <- function(data, columns, factor = 2){
+detect_outliers_iqr <- function(data, columns, factor = 2){
   
   # Initialize a vector to hold the indices of outlier rows
-#  outlier_indices <- c()
+  outlier_indices <- c()
   
   # Loop over each specified column
-#  for(col in columns){
+  for(col in columns){
     
     # Calculate the first quartile (25th percentile)
-#    Q1 <- quantile(data[[col]], 0.25, na.rm = TRUE)
+    Q1 <- quantile(data[[col]], 0.25, na.rm = TRUE)
     
     # Calculate the third quartile (75th percentile)
-#    Q3 <- quantile(data[[col]], 0.75, na.rm = TRUE)
+    Q3 <- quantile(data[[col]], 0.75, na.rm = TRUE)
     
     # Calculate the interquartile range (IQR)
-#    IQR <- Q3 - Q1
+    IQR <- Q3 - Q1
     
     # Calculate the lower bound for what will be considered an outlier
-#    lower_bound <- Q1 - factor * IQR
+    lower_bound <- Q1 - factor * IQR
     
     # Calculate the upper bound for what will be considered an outlier
-#    upper_bound <- Q3 + factor * IQR
+    upper_bound <- Q3 + factor * IQR
     
     # Identify the indices of rows where the column value is an outlier
-#    outliers <- which(data[[col]] < lower_bound | data[[col]] > upper_bound)
+    outliers <- which(data[[col]] < lower_bound | data[[col]] > upper_bound)
     
     # Add the indices of the outliers to the list of outlier indices
-#    outlier_indices <- c(outlier_indices, outliers)
-#  }
+    outlier_indices <- c(outlier_indices, outliers)
+  }
   
   # Return the unique outlier indices
-#  return(unique(outlier_indices))
-#}
+  return(unique(outlier_indices))
+}
 
 
 # Call the detect_outliers_iqr function, passing the data frame and column names of the numeric columns.
-#outlier_indices <- detect_outliers_iqr(df, names(df))
+outlier_indices <- detect_outliers_iqr(df_t, names(df_t))
 
 # Print the number of outliers and their indices
 #cat(paste0("Number of outliers detected: ", length(outlier_indices)), "\n")
@@ -329,28 +316,10 @@ rownames(cor_df[abs(cor_df$y) > 0.4 & abs(cor_df$y) < 1, ])
 
 # Remove the outliers from the data frame by subsetting the data frame to exclude these rows.
 # The negative sign before outlier_indices means "all rows EXCEPT these indices".
-#df_no_outliers <- df[-outlier_indices, ]
+df_no_outliers <- df_t[-outlier_indices, ]
 
 # Remove the unwanted data
 rm(df_no_outliers, p_values, results, vif_values, i, check_data, 
-   detect_outliers_iqr, scatter_list, model, outlier_indices)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   detect_outliers_iqr, scatter_list, model, outlier_indices, 
+   df, model, df_t_missing)
 

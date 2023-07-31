@@ -22,26 +22,15 @@ setwd("~/Documents/Dissertation/main/Dissertation")
 # Remove unwanted objects
 rm(library_list, i)
 
-
-
-
 #### SOURCE SIMULATED DATA ####
 
 # Source the file that contains the simulation functions
 source("simulate_data.R")
 
-
-
-
-
 #### SOURCE FUNCTIONS ####
 
 # Source the file that contains the simulation functions
 source("functions.R")
-
-
-
-
 
 #### SIM DATA. LASSO AND ELASTIC NET FITTING 'glmnet' ####
 
@@ -52,108 +41,114 @@ source("functions.R")
 prefixes <- c("T1", "T2", "T3", "T4")
 # List of dataset suffixes
 suffixes <- c("LD", "ED", "HD", "VD")
-# List of methods and corresponding functions
-methods <- list("_lasso" = fit_lasso, "_elnet" = fit_elnet)
+# Initialize an empty list to store the models
+models_list_glmnet <- list()
 
-# Function to fit model
-fit_model <- function(data, prefix, method) {
-  if (prefix %in% c("T3", "T4")) {
-    cat_var = TRUE
-  } else {
-    cat_var = FALSE
-  }
-  return(methods[[method]](data, cat_var))
-}
-
-# Loop through prefixes, suffixes and methods
+# Loop over prefixes and suffixes
 for (prefix in prefixes) {
   for (suffix in suffixes) {
-    # Construct the data variable name
-    data_var_name <- paste0(prefix, "_", suffix)
-    data_var <- get(data_var_name)
+    # Construct the dataset name
+    dataset_name <- paste(prefix, suffix, sep = "_")
     
-    for (method in names(methods)) {
-      # Construct the model variable name
-      model_var_name <- paste0(prefix, "_", suffix, method)
-      # Fit the model and assign it to a variable in the global environment
-      assign(model_var_name, fit_model(data_var, prefix, method), envir = .GlobalEnv)
+    # Access the dataset from the global environment
+    dataset <- get(dataset_name)
+    
+    # Fit the model for each alpha value (0.5 and 1)
+    for (alpha in c(0.5, 1)) {
+      # Fit the model
+      model <- fit_glmnet(dataset, alpha = alpha)
+      
+      # Generate a model name
+      model_name <- paste(prefix, suffix, ifelse(alpha == 0.5, "elnet", "lasso"), sep = "_")
+      
+      # Store the model in the list
+      models_list_glmnet[[model_name]] <- model
     }
   }
 }
 
-# Remove the functions and prefixes, suffixes, methods as they won't be used anymore
-rm(fit_elnet, fit_lasso, prefixes, suffixes, methods, fit_lasso, fit_elnet,
-   data_var_name, data_var, model_var_name, prefix, suffix, method,)
-
-
-
-
 #### SIM DATA. XGBOOST 'caret' ####
 
 # Set the initial parameters for XGBoost
-
 # Define an extensive grid for hyperparameter tuning
 # This grid consists of multiple values for each parameter, allowing for more refined tuning
 xgb_grid <- expand.grid(
-  nrounds = c(50, 100, 150),                  # Number of boosting rounds
-  max_depth = c(3, 5, 7, 9),                  # Maximum depth of the trees
-  eta = c(0.01, 0.1, 0.3),                    # Learning rate
-  gamma = c(0, 0.1, 1),                       # Minimum loss reduction required
-  colsample_bytree = c(0.6, 0.8, 1),          # Fraction of features to be randomly sampled for each tree
-  min_child_weight = c(1, 3, 5),              # Minimum sum of instance weight needed in a leaf
-  subsample = c(0.8, 1)                      # Fraction of observations to be randomly sampled for each tree
-)
+  # Number of boosting rounds
+  nrounds = c(50, 100, 150),
+  # Maximum depth of the trees
+  max_depth = c(3, 5, 7, 9),
+  # Learning rate
+  eta = c(0.01, 0.1, 0.3),
+  # Minimum loss reduction required
+  gamma = c(0, 0.1, 1),
+  # Fraction of features to be randomly sampled for each tree
+  colsample_bytree = c(0.6, 0.8, 1),
+  # Minimum sum of instance weight needed in a leaf
+  min_child_weight = c(1, 3, 5),
+  # Fraction of observations to be randomly sampled for each tree
+  subsample = c(0.8, 1))
 
 
 # Define cross-validation strategy
 # This helps in assessing the model's performance in an unbiased way using a subset of the data
 xgb_cv <- trainControl(
-  method = "repeatedcv",     # Repeated cross-validation
-  number = 5,                # Number of folds
-  repeats = 3,               # Number of complete sets of folds to compute
-  verboseIter = TRUE,        # Display training progress
-  returnData = FALSE,        # Do not return the training data
-  returnResamp = "all",      # Save all resampling scores
-  allowParallel = TRUE,      # Allow parallel processing
-)
+  # Repeated cross-validation
+  method = "repeatedcv",
+  # Number of folds
+  number = 5,
+  # Number of complete sets of folds to compute
+  repeats = 3,
+  # Display training progress
+  verboseIter = TRUE,
+  # Do not return the training data
+  returnData = FALSE,
+  # Save all resampling scores
+  returnResamp = "all",
+  # Allow parallel processing
+  allowParallel = TRUE)
 
 # Fit the function
-# Type 1 data
-T1_LD_xgboost <- fit_xgb(data = T1_LD, xgb_cv, xgb_grid)
-T1_ED_xgboost <- fit_xgb(data = T1_ED, xgb_cv, xgb_grid)
-T1_VD_xgboost <- fit_xgb(data = T1_HD, xgb_cv, xgb_grid)
-T1_HD_xgboost <- fit_xgb(data = T1_VD, xgb_cv, xgb_grid)
-T1_XD_xgboost <- fit_xgb(data = T1_XD, xgb_cv, xgb_grid)
+# Prefixes
+prefixesx <- c("T1", "T2", "T3", "T4")
+# List of dataset suffixes
+suffixesx <- c("LD", "ED", "HD", "VD", "XD")
 
-# Type 2 data
-T2_LD_xgboost <- fit_xgb(data = T2_LD, xgb_cv, xgb_grid)
-T2_ED_xgboost <- fit_xgb(data = T2_ED, xgb_cv, xgb_grid)
-T2_VD_xgboost <- fit_xgb(data = T2_HD, xgb_cv, xgb_grid)
-T2_HD_xgboost <- fit_xgb(data = T2_VD, xgb_cv, xgb_grid)
-T2_XD_xgboost <- fit_xgb(data = T2_XD, xgb_cv, xgb_grid)
+# Initialize an empty list to store the models
+models_xgboost_list <- list()
 
-# Type 3 data
-T3_LD_xgboost <- fit_xgb(data = T3_LD, cat_var = TRUE, xgb_cv, xgb_grid)
-T3_ED_xgboost <- fit_xgb(data = T3_ED, cat_var = TRUE, xgb_cv, xgb_grid)
-T3_VD_xgboost <- fit_xgb(data = T3_HD, cat_var = TRUE, xgb_cv, xgb_grid)
-T3_HD_xgboost <- fit_xgb(data = T3_VD, cat_var = TRUE, xgb_cv, xgb_grid)
-T3_XD_xgboost <- fit_xgb(data = T3_XD, cat_var = TRUE, xgb_cv, xgb_grid)
-
-# Type 4 data
-T4_LD_xgboost <- fit_xgb(data = T4_LD, cat_var = TRUE, xgb_cv, xgb_grid)
-T4_ED_xgboost <- fit_xgb(data = T4_ED, cat_var = TRUE, xgb_cv, xgb_grid)
-T4_VD_xgboost <- fit_xgb(data = T4_HD, cat_var = TRUE, xgb_cv, xgb_grid)
-T4_HD_xgboost <- fit_xgb(data = T4_VD, cat_var = TRUE, xgb_cv, xgb_grid)
-T4_XD_xgboost <- fit_xgb(data = T4_XD, cat_var = TRUE, xgb_cv, xgb_grid)
-
-
+# Loop over prefixes and suffixes
+for (prefix in prefixesx) {
+  for (suffix in suffixesx) {
+    # Construct the dataset name
+    dataset_name <- paste(prefix, suffix, sep = "_")
+    
+    # Access the dataset from the global environment
+    dataset <- get(dataset_name)
+    
+    # Fit the model
+    model <- fit_xgb(data = dataset, xgb_cv = xgb_cv, xgb_grid = xgb_grid)
+    
+    # Generate a model name
+    model_name <- paste(dataset_name, "xgboost", sep = "_")
+    
+    # Store the model in the global environment
+    assign(model_name, model)
+    
+    # Store the model in the list
+    models_xgboost_list[[model_name]] <- model
+    
+    # Save the model as RDS
+    saveRDS(model, file = paste0("~/Downloads/", model_name, ".rds"))
+  }
+}
 
 #### SIM DATA. SPIKE AND SLAB PRIOR 'spikeslab' #### 
 
 # Extract the selected variables
 # T1 data
 ssp_T1_LD <- fit_spikeslab_prior(data = T1_LD, bigp_smalln = FALSE)
-ssp_T1_ED <- fit_spikeslab_prior(data = T1_ED, bigp_smalln = FALSE)
+ssp_T1_ED <- fit_spikeslab_prior(data = T1_ED, bigp_smalln = TRUE,
+                                 bigp_smalln_factor = 1, screen = TRUE)
 ssp_T1_HD <- fit_spikeslab_prior(data = T1_HD, bigp_smalln = TRUE, 
                                  bigp_smalln_factor = 1, screen = TRUE)
 ssp_T1_VD <- fit_spikeslab_prior(data = T1_VD, bigp_smalln = TRUE, 
@@ -161,74 +156,58 @@ ssp_T1_VD <- fit_spikeslab_prior(data = T1_VD, bigp_smalln = TRUE,
 
 # T2 data
 ssp_T2_LD <- fit_spikeslab_prior(data = T2_LD, bigp_smalln = FALSE)
-ssp_T2_ED <- fit_spikeslab_prior(data = T2_ED, bigp_smalln = FALSE)
+ssp_T2_ED <- fit_spikeslab_prior(data = T2_ED, bigp_smalln = TRUE,
+                                 bigp_smalln_factor = 1, screen = TRUE)
 ssp_T2_HD <- fit_spikeslab_prior(data = T2_HD, bigp_smalln = TRUE, 
                                  bigp_smalln_factor = 1, screen = TRUE)
 ssp_T2_VD <- fit_spikeslab_prior(data = T2_VD, bigp_smalln = TRUE, 
                                  bigp_smalln_factor = 1, screen = TRUE)
 
 # T3 data
-ssp_T3_LD <- fit_spikeslab_prior(data = T3_LD, cat_var = TRUE, bigp_smalln = FALSE)
-ssp_T3_ED <- fit_spikeslab_prior(data = T3_ED, cat_var = TRUE, bigp_smalln = FALSE)
-ssp_T3_HD <- fit_spikeslab_prior(data = T3_HD, cat_var = TRUE, bigp_smalln = TRUE, 
+ssp_T3_LD <- fit_spikeslab_prior(data = T3_LD, bigp_smalln = FALSE)
+ssp_T3_ED <- fit_spikeslab_prior(data = T3_ED, bigp_smalln = TRUE,
                                  bigp_smalln_factor = 1, screen = TRUE)
-ssp_T3_VD <- fit_spikeslab_prior(data = T3_VD, cat_var = TRUE, bigp_smalln = TRUE, 
+ssp_T3_HD <- fit_spikeslab_prior(data = T3_HD, bigp_smalln = TRUE, 
+                                 bigp_smalln_factor = 1, screen = TRUE)
+ssp_T3_VD <- fit_spikeslab_prior(data = T3_VD, bigp_smalln = TRUE, 
                                  bigp_smalln_factor = 1, screen = TRUE)
 
 # T4 data
-ssp_T4_LD <- fit_spikeslab_prior(data = T4_LD, cat_var = TRUE, bigp_smalln = FALSE)
-ssp_T4_ED <- fit_spikeslab_prior(data = T4_ED, cat_var = TRUE, bigp_smalln = TRUE,
+ssp_T4_LD <- fit_spikeslab_prior(data = T4_LD, bigp_smalln = FALSE)
+ssp_T4_ED <- fit_spikeslab_prior(data = T4_ED, bigp_smalln = TRUE,
                                  bigp_smalln_factor = 1, screen = TRUE)
-ssp_T4_HD <- fit_spikeslab_prior(data = T4_HD, cat_var = TRUE, bigp_smalln = TRUE, 
+ssp_T4_HD <- fit_spikeslab_prior(data = T4_HD, bigp_smalln = TRUE, 
                                  bigp_smalln_factor = 1, screen = TRUE)
-ssp_T4_VD <- fit_spikeslab_prior(data = T4_VD, cat_var = TRUE, bigp_smalln = TRUE, 
+ssp_T4_VD <- fit_spikeslab_prior(data = T4_VD, bigp_smalln = TRUE, 
                                  bigp_smalln_factor = 1, screen = TRUE)
-
-# Remove functions, and large spikeslab objects
-#rm(fit_spikeslab_prior, ssp_T1_LD, ssp_T1_ED, ssp_T1_HD, ssp_T1_VD,
-#ssp_T2_LD, ssp_T2_ED, ssp_T2_HD, ssp_T2_VD,
-#ssp_T3_LD, ssp_T3_ED, ssp_T3_HD, ssp_T3_VD,
-#ssp_T4_LD, ssp_T4_ED, ssp_T4_HD, ssp_T4_VD)
-
 
 #### SIM DATA. SPIKE-AND-SLAB LASSO 'SSLASSO' ####
 
 # Call the function with the simulated data
-# T1 Data
-ssl_T1_LD <- fit_sslasso(T1_LD)
-ssl_T1_ED <- fit_sslasso(T1_ED)
-ssl_T1_HD <- fit_sslasso(T1_HD)
-ssl_T1_VD <- fit_sslasso(T1_VD)
+#   Loop over prefixes and suffixes
+for (prefix in prefixes) {
+  for (suffix in suffixes) {
+    # Construct the dataset name
+    dataset_name <- paste(prefix, suffix, sep = "_")
+    
+    # Access the dataset from the global environment
+    dataset <- get(dataset_name)
+    
+    # Fit the model
+    model <- fit_sslasso(dataset)
+    
+    # Generate a model name
+    model_name <- paste("ssl", dataset_name, sep = "_")
+    
+    # Store the model in the global environment
+    assign(model_name, model)
+    
+    # Save the model as RDS
+    saveRDS(model, file = paste0("~/Downloads/", model_name, ".rds"))
+  }
+}
 
-# T2 Data
-ssl_T2_LD <- fit_sslasso(T2_LD)
-ssl_T2_ED <- fit_sslasso(T2_ED)
-ssl_T2_HD <- fit_sslasso(T2_HD)
-ssl_T2_VD <- fit_sslasso(T2_VD, var = "unknown")
-
-# T3 Data
-ssl_T3_LD <- fit_sslasso(T3_LD, cat_var = TRUE, var = "unknown")
-ssl_T3_ED <- fit_sslasso(T3_ED, cat_var = TRUE)
-ssl_T3_HD <- fit_sslasso(T3_HD, cat_var = TRUE)
-ssl_T3_VD <- fit_sslasso(T3_VD, cat_var = TRUE)
-
-# T4 Data
-ssl_T4_LD <- fit_sslasso(T4_LD, cat_var = TRUE, var = "unknown")
-ssl_T4_ED <- fit_sslasso(T4_ED, cat_var = TRUE)
-ssl_T4_HD <- fit_sslasso(T4_HD, cat_var = TRUE)
-ssl_T4_VD <- fit_sslasso(T4_VD, cat_var = TRUE)
-
-# The output contains coefficients, ever_selected, and plot
-#ssl_T1_LD$coefficients
-#ssl_T3_LD$ever_selected
-ssl_T4_LD$selected_variable_names
-
-# Remove functions, and large SSLASSO objects
-#rm(fit_sslasso, ssl_T1_LD, ssl_T1_ED, ssl_T1_HD, ssl_T1_VD,
-#ssl_T2_LD, ssl_T2_ED, ssl_T2_HD, ssl_T2_VD,
-#ssl_T3_LD, ssl_T3_ED, ssl_T3_HD, ssl_T3_VD,
-#ssl_T4_LD, ssl_T4_ED, ssl_T4_HD, ssl_T4_VD)
-
+ssl_T1_ED$selected_variable_names
 
 #### SIM DATA. HORSESHOE PRIOR. 'horseshoe' ####
 
@@ -246,16 +225,16 @@ hshst_T2_HD <- fit_hs_horseshoe(data = T2_HD, method.tau = "truncatedCauchy")
 hshst_T2_VD <- fit_hs_horseshoe(data = T2_VD, method.tau = "truncatedCauchy")
 
 # T3 Data
-hshst_T3_LD <- fit_hs_horseshoe(data = T3_LD, cat_var = TRUE, method.tau = "truncatedCauchy")
-hshst_T3_ED <- fit_hs_horseshoe(data = T3_ED, cat_var = TRUE, method.tau = "truncatedCauchy")
-hshst_T3_HD <- fit_hs_horseshoe(data = T3_HD, cat_var = TRUE, method.tau = "truncatedCauchy")
-hshst_T3_VD <- fit_hs_horseshoe(data = T3_VD, cat_var = TRUE, method.tau = "truncatedCauchy")
+hshst_T3_LD <- fit_hs_horseshoe(data = T3_LD, method.tau = "truncatedCauchy")
+hshst_T3_ED <- fit_hs_horseshoe(data = T3_ED, method.tau = "truncatedCauchy")
+hshst_T3_HD <- fit_hs_horseshoe(data = T3_HD, method.tau = "truncatedCauchy")
+hshst_T3_VD <- fit_hs_horseshoe(data = T3_VD, method.tau = "truncatedCauchy")
 
 # T4 Data
-hshst_T4_LD <- fit_hs_horseshoe(data = T4_LD, cat_var = TRUE, method.tau = "truncatedCauchy")
-hshst_T4_ED <- fit_hs_horseshoe(data = T4_ED, cat_var = TRUE, method.tau = "truncatedCauchy")
-hshst_T4_HD <- fit_hs_horseshoe(data = T4_HD, cat_var = TRUE, method.tau = "truncatedCauchy")
-hshst_T4_VD <- fit_hs_horseshoe(data = T4_VD, cat_var = TRUE, method.tau = "truncatedCauchy")
+hshst_T4_LD <- fit_hs_horseshoe(data = T4_LD, method.tau = "truncatedCauchy")
+hshst_T4_ED <- fit_hs_horseshoe(data = T4_ED, method.tau = "truncatedCauchy")
+hshst_T4_HD <- fit_hs_horseshoe(data = T4_HD, method.tau = "truncatedCauchy")
+hshst_T4_VD <- fit_hs_horseshoe(data = T4_VD, method.tau = "truncatedCauchy")
 
 hshst_T4_VD$sel_var
 HS.var.select(hshst_T1_VD$model$BetaMedian, y, method = "intervals")
@@ -274,27 +253,21 @@ hshsh_T2_HD <- fit_hs_horseshoe(data = T2_HD, method.tau = "halfCauchy")
 hshsh_T2_VD <- fit_hs_horseshoe(data = T2_VD, method.tau = "halfCauchy")
 
 # T3 Data
-hshsh_T3_LD <- fit_hs_horseshoe(data = T3_LD, cat_var = TRUE, method.tau = "halfCauchy")
-hshsh_T3_ED <- fit_hs_horseshoe(data = T3_ED, cat_var = TRUE, method.tau = "halfCauchy")
-hshsh_T3_HD <- fit_hs_horseshoe(data = T3_HD, cat_var = TRUE, method.tau = "halfCauchy")
-hshsh_T3_VD <- fit_hs_horseshoe(data = T3_VD, cat_var = TRUE, method.tau = "halfCauchy")
+hshsh_T3_LD <- fit_hs_horseshoe(data = T3_LD, method.tau = "halfCauchy")
+hshsh_T3_ED <- fit_hs_horseshoe(data = T3_ED, method.tau = "halfCauchy")
+hshsh_T3_HD <- fit_hs_horseshoe(data = T3_HD, method.tau = "halfCauchy")
+hshsh_T3_VD <- fit_hs_horseshoe(data = T3_VD, method.tau = "halfCauchy")
 
 # T4 Data
-hshsh_T4_LD <- fit_hs_horseshoe(data = T4_LD, cat_var = TRUE, method.tau = "halfCauchy")
-hshsh_T4_ED <- fit_hs_horseshoe(data = T4_ED, cat_var = TRUE, method.tau = "halfCauchy")
-hshsh_T4_HD <- fit_hs_horseshoe(data = T4_HD, cat_var = TRUE, method.tau = "halfCauchy")
-hshsh_T4_VD <- fit_hs_horseshoe(data = T4_VD, cat_var = TRUE, method.tau = "halfCauchy")
+hshsh_T4_LD <- fit_hs_horseshoe(data = T4_LD, method.tau = "halfCauchy")
+hshsh_T4_ED <- fit_hs_horseshoe(data = T4_ED, method.tau = "halfCauchy")
+hshsh_T4_HD <- fit_hs_horseshoe(data = T4_HD, method.tau = "halfCauchy")
+hshsh_T4_VD <- fit_hs_horseshoe(data = T4_VD, method.tau = "halfCauchy")
 
 hshsh_T4_VD$sel_var
 
-# Remove functions, and large horseshoe objects
-#rm(fit_hs_horseshoe, hshsh_T1_LD, hshsh_T1_ED, hshsh_T1_HD, hshsh_T1_VD,
-#hshsh_T2_LD, hshsh_T2_ED, hshsh_T2_HD, hshsh_T2_VD,
-#hshsh_T3_LD, hshsh_T3_ED, hshsh_T3_HD, hshsh_T3_VD,
-#hshsh_T4_LD, hshsh_T4_ED, hshsh_T4_HD, hshsh_T4_VD)
-
-
 #### SIM DATA. HORSESHOE PRIOR 'bayesreg' ####
+
 # Fit the model
 # T1 Data
 hs_bs_T1_LD <- fit_horseshoe_bs(data = T1_LD)
@@ -309,18 +282,16 @@ hs_bs_T2_HD <- fit_horseshoe_bs(data = T2_HD)
 hs_bs_T2_VD <- fit_horseshoe_bs(data = T2_VD)
 
 # T3 Data
-hs_bs_T3_LD <- fit_horseshoe_bs(data = T3_LD, cat_var = TRUE)
-hs_bs_T3_ED <- fit_horseshoe_bs(data = T3_ED, cat_var = TRUE)
-hs_bs_T3_HD <- fit_horseshoe_bs(data = T3_HD, cat_var = TRUE)
-hs_bs_T3_VD <- fit_horseshoe_bs(data = T3_VD, cat_var = TRUE)
+hs_bs_T3_LD <- fit_horseshoe_bs(data = T3_LD)
+hs_bs_T3_ED <- fit_horseshoe_bs(data = T3_ED)
+hs_bs_T3_HD <- fit_horseshoe_bs(data = T3_HD)
+hs_bs_T3_VD <- fit_horseshoe_bs(data = T3_VD)
 
 # T4 Data
-hs_bs_T4_LD <- fit_horseshoe_bs(data = T4_LD, cat_var = TRUE)
-hs_bs_T4_ED <- fit_horseshoe_bs(data = T4_ED, cat_var = TRUE)
-hs_bs_T4_HD <- fit_horseshoe_bs(data = T4_HD, cat_var = TRUE)
-hs_bs_T4_VD <- fit_horseshoe_bs(data = T4_VD, cat_var = TRUE)
-
-
+hs_bs_T4_LD <- fit_horseshoe_bs(data = T4_LD)
+hs_bs_T4_ED <- fit_horseshoe_bs(data = T4_ED)
+hs_bs_T4_HD <- fit_horseshoe_bs(data = T4_HD)
+hs_bs_T4_VD <- fit_horseshoe_bs(data = T4_VD)
 
 #### SIM DATA. HORSESHOE + PRIOR 'bayesreg' ####
 
@@ -338,26 +309,21 @@ hsp_bs_T2_HD <- fit_horseshoe_bs(data = T2_HD, prior = "hs+")
 hsp_bs_T2_VD <- fit_horseshoe_bs(data = T2_VD, prior = "hs+")
 
 # T3 Data
-hsp_bs_T3_LD <- fit_horseshoe_bs(data = T3_LD, cat_var = TRUE, prior = "hs+")
-hsp_bs_T3_ED <- fit_horseshoe_bs(data = T3_ED, cat_var = TRUE, prior = "hs+")
-hsp_bs_T3_HD <- fit_horseshoe_bs(data = T3_HD, cat_var = TRUE, prior = "hs+")
-hsp_bs_T3_VD <- fit_horseshoe_bs(data = T3_VD, cat_var = TRUE, prior = "hs+")
+hsp_bs_T3_LD <- fit_horseshoe_bs(data = T3_LD, prior = "hs+")
+hsp_bs_T3_ED <- fit_horseshoe_bs(data = T3_ED, prior = "hs+")
+hsp_bs_T3_HD <- fit_horseshoe_bs(data = T3_HD, prior = "hs+")
+hsp_bs_T3_VD <- fit_horseshoe_bs(data = T3_VD, prior = "hs+")
 
 # T4 Data
-hsp_bs_T4_LD <- fit_horseshoe_bs(data = T4_LD, cat_var = TRUE, prior = "hs+")
-hsp_bs_T4_ED <- fit_horseshoe_bs(data = T4_ED, cat_var = TRUE, prior = "hs+")
-hsp_bs_T4_HD <- fit_horseshoe_bs(data = T4_HD, cat_var = TRUE, prior = "hs+")
-hsp_bs_T4_VD <- fit_horseshoe_bs(data = T4_VD, cat_var = TRUE, prior = "hs+")
+hsp_bs_T4_LD <- fit_horseshoe_bs(data = T4_LD, prior = "hs+")
+hsp_bs_T4_ED <- fit_horseshoe_bs(data = T4_ED, prior = "hs+")
+hsp_bs_T4_HD <- fit_horseshoe_bs(data = T4_HD, prior = "hs+")
+hsp_bs_T4_VD <- fit_horseshoe_bs(data = T4_VD, prior = "hs+")
 
 
 hsp_bs_T4_VD[["rank"]]
 
 #### SIM DATA. SSS WITH SCREENING 'BayesS5' ####
-
-print(result(S5_T1_LD)$hppm) # the MAP model
-#print(result(S5_T1_LD)$hppm.prob) # the posterior probability of the hppm
-#plot(result(S5_T1_LD)$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion probability")
-
 
 # Fit the model
 # T1 Data
@@ -373,22 +339,18 @@ S5_T2_HD <- fit_S5(data = T2_HD)# %>% results()
 S5_T2_VD <- fit_S5(data = T2_VD)# %>% results()
 
 # T3 Data
-S5_T3_LD <- fit_S5(data = T3_LD, cat_var = TRUE)# %>% results()
-S5_T3_ED <- fit_S5(data = T3_ED, cat_var = TRUE)# %>% results()
-S5_T3_HD <- fit_S5(data = T3_HD, cat_var = TRUE)# %>% results()
-S5_T3_VD <- fit_S5(data = T3_VD, cat_var = TRUE)# %>% results()
+S5_T3_LD <- fit_S5(data = T3_LD)# %>% results()
+S5_T3_ED <- fit_S5(data = T3_ED)# %>% results()
+S5_T3_HD <- fit_S5(data = T3_HD)# %>% results()
+S5_T3_VD <- fit_S5(data = T3_VD)# %>% results()
 
 # T4 Data
-S5_T4_LD <- fit_S5(data = T4_LD, cat_var = TRUE)# %>% results()
-S5_T4_ED <- fit_S5(data = T4_ED, cat_var = TRUE)# %>% results()
-S5_T4_HD <- fit_S5(data = T4_HD, cat_var = TRUE)# %>% results()
-S5_T4_VD <- fit_S5(data = T4_VD, cat_var = TRUE)# %>% results()
-
-
-
+S5_T4_LD <- fit_S5(data = T4_LD)# %>% results()
+S5_T4_ED <- fit_S5(data = T4_ED)# %>% results()
+S5_T4_HD <- fit_S5(data = T4_HD)# %>% results()
+S5_T4_VD <- fit_S5(data = T4_VD)# %>% results()
 
 #### SIM DATA. BAYESIAN LASSO 'monomvn' ####
-
 
 # T1 Data
 blasso_T1_LD <- fit_blasso(data = T1_LD)
@@ -403,167 +365,66 @@ blasso_T2_HD <- fit_blasso(data = T2_HD)
 blasso_T2_VD <- fit_blasso(data = T2_VD)
 
 # T3 Data
-blasso_T3_LD <- fit_blasso(data = T3_LD, cat_var = TRUE)
-blasso_T3_ED <- fit_blasso(data = T3_ED, cat_var = TRUE)
-blasso_T3_HD <- fit_blasso(data = T3_HD, cat_var = TRUE)
-blasso_T3_VD <- fit_blasso(data = T3_VD, cat_var = TRUE)
+blasso_T3_LD <- fit_blasso(data = T3_LD)
+blasso_T3_ED <- fit_blasso(data = T3_ED)
+blasso_T3_HD <- fit_blasso(data = T3_HD)
+blasso_T3_VD <- fit_blasso(data = T3_VD)
 
 # T4 Data
-blasso_T4_LD <- fit_blasso(data = T4_LD, cat_var = TRUE)
-blasso_T4_ED <- fit_blasso(data = T4_ED, cat_var = TRUE)
-blasso_T4_HD <- fit_blasso(data = T4_HD, cat_var = TRUE)
-blasso_T4_VD <- fit_blasso(data = T4_VD, cat_var = TRUE)
+blasso_T4_LD <- fit_blasso(data = T4_LD)
+blasso_T4_ED <- fit_blasso(data = T4_ED)
+blasso_T4_HD <- fit_blasso(data = T4_HD)
+blasso_T4_VD <- fit_blasso(data = T4_VD)
 
-
-
-
-data <- T1_LD
-# Extract the target
-y <- data$y
-
-# Remove the original categorical variables
-data <- data.frame(scale(subset(data, select = -y)))
-
-# Combine scaled continuous variables, intercept
-X <- model.matrix(~ . - 1, data = data)
-
-fit_blasso <- monomvn::blasso(X = X, y = y, T, thin = NULL, RJ = FALSE, M = ncol(data),
-                              beta = rep(-500, ncol(data)), lambda2 = 0.1, verb = 1)
-
-fit_blasso <- monomvn::blasso(X = X, y = y, T = 1200, lambda = 1)
-fit_blasso0 <- monomvn::blasso(X = X, y = y, T = 1000, lambda = 0)
-
-
-#colMeans(fit_blasso$beta) == colMeans(fit_blasso1$beta)
-## summarize the beta (regression coefficients) estimates
-plot(fit_blasso, burnin=1000)
-points(drop(fit_blasso$b), col=2, pch=20)
-points(drop(fit_blasso0$b), col=3, pch=18)
-legend("topleft", c("blasso-map", "lasso", "lsr"),
-       col=c(2,2,3), pch=c(21,20,18))
-
-
-colMeans(abs(fit_blasso$beta)) > 0.5
-
-
-
-
-
-
-
-## CONVERGENCE OF CHAINS #
-
-# Number of chains
-n_chains <- 4
-
-# Store the results of each chain in a list
-chains <- vector("list", n_chains)
-
-# Run through all the chains and extract posterior distributions
-for(i in 1:n_chains) {
-  # Run blasso with different initial values for beta
-  chains[[i]] <- monomvn::blasso(X = X, y = y, T = 2000,
-                                 lambda2 = 1, verb = 1)
-}
-
-# Combine the chains into a mcmc.list object
-mcmc_list <- mcmc.list(lapply(chains, function(chain) 
-  mcmc(chain$beta, thin = chain$thin)))
-
-# Compute the Gelman-Rubin diagnostic
-gelman_res <- gelman.diag(mcmc_list)
-
-
-
-
-
-
-
-
-#### CRIME ANALYSIS ####
-
-#### SOURCE DATA FRAMES AND VECTORS OF CRIME DATA ####
+#### SOURCE CRIME DATA ####
 
 # Source the file that contains the crime data
 source("data_crime_raw.R")
 
-
-
-
-
 #### CRIME. LASSO PENALISED REGRESSION 'glmnet' ####
 
 # Run the LASSO function and extract the selected coefficients
-crime_lasso <- fit_lasso_crime(data = df)
-
-# Remove function
-rm(fit_crime_lasso_crime)
-
-
-
+crime_lasso <- fit_glmnet(data = df_t, alpha = 1)
+saveRDS(crime_lasso, "~/Documents/Dissertation/main/dissertation/results/crime/crime_lasso.rds")
 
 #### CRIME. ELNET PENALISED REGRESSION 'glmnet' ####
 
 # Run the elnet function and extract the selected coefficients
-crime_elnet <- fit_elnet_crime(data = df)
-
-# Remove function
-rm(fit_crime_elnet_crime)
-
-
+crime_elnet <- fit_glmnet(data = df_t, alpha = 0.5)
+saveRDS(crime_elnet, "~/Documents/Dissertation/main/dissertation/results/crime/crime_elnet.rds")
 
 
 #### CRIME. XGBOOST ####
 
-# Set the initial parameters for XGBoost
-
-# Define an extensive grid for hyperparameter tuning
-# This grid consists of multiple values for each parameter, allowing for more refined tuning
-xgb_grid <- expand.grid(
-  nrounds = c(50, 100, 150),                  # Number of boosting rounds
-  max_depth = c(3, 5, 7, 9),                  # Maximum depth of the trees
-  eta = c(0.01, 0.1, 0.3),                    # Learning rate
-  gamma = c(0, 0.1, 1),                       # Minimum loss reduction required
-  colsample_bytree = c(0.6, 0.8, 1),          # Fraction of features to be randomly sampled for each tree
-  min_child_weight = c(1, 3, 5),              # Minimum sum of instance weight needed in a leaf
-  subsample = c(0.8, 1) ,                      # Fraction of observations to be randomly sampled for each tree
-  objective = "reg:linear"                    # Specify the learning task and the corresponding learning objective
-)
-
-# Define cross-validation strategy
-# This helps in assessing the model's performance in an unbiased way using a subset of the data
-xgb_cv <- trainControl(
-  method = "repeatedcv",     # Repeated cross-validation
-  number = 5,                # Number of folds
-  repeats = 3,               # Number of complete sets of folds to compute
-  verboseIter = TRUE,        # Display training progress
-  returnData = FALSE,        # Do not return the training data
-  returnResamp = "all",      # Save all resampling scores
-  allowParallel = TRUE,      # Allow parallel processing
-)
+# Initial parameters for xgboost were already defined
 
 # Run the function to extract XGBoost model and feature importances
-#crime_xgboost <- fit_crime_xgboost_crime(data = df,
-#                                   xgb_cv = xgb_cv, xgb_grid = xgb_grid)
+crime_xgboost <- fit_xgb(data = df_t, xgb_cv = xgb_cv, xgb_grid = xgb_grid)
+
+# Save the model object to a RDS file
+saveRDS(crime_xgboost, file = "~Downloads/crime_xgboost.rds")
 
 
 #### CRIME. SPIKE AND SLAB PRIOR 'spikeslab' ####
-crime_spikeslab_prior <- fit_spikeslab_prior_crime(data = df, bigp_smalln = FALSE)
 
+# Fit spikeslab model
+crime_spikeslab_prior <- fit_spikeslab_prior(data = df_t, bigp_smalln = FALSE)
+saveRDS(crime_spikeslab_prior, "~/Documents/Dissertation/main/dissertation/results/crime/crime_spikeslab_prior.rds")
 
-
+crime_spikeslab_prior$spikeslab.obj
 
 #### CRIME. SPIKE AND SLAB LASSO 'SSLASSO' ####
 
 # Call the function with the Crimes data
-ssl_crime <- fit_sslasso_crime(data = df)
+crime_ssl <- fit_sslasso(data = df_t, var = "fixed")
+saveRDS(crime_ssl, "~/Documents/Dissertation/main/dissertation/results/crime/crime_ssl.rds")
 #sslasso_crime
 
 # The output contains coefficients, ever_selected, and plot
-ssl_crime$coefficients
-ssl_crime$ever_selected
+crime_ssl$coefficients
+crime_ssl$ever_selected
 
-ssl_crime$selected_variable_names
+crime_ssl$selected_variable_names
 
 
 
@@ -571,49 +432,42 @@ ssl_crime$selected_variable_names
 
 # Run the functions an extract the results
 # Truncated Cauchy prior
-crime_horseshoe_t <- fit_crime_horseshoe_crime(data = df,
-                                         method.tau = "truncatedCauchy",
-                                         tau = 10,
-                                         method.sigma = "Jeffreys",
-                                         burn = 1000, 
-                                         nmc = 5000, 
-                                         thin = 10, 
-                                         alpha = 0.05)
-
+crime_horseshoe_tc <- fit_hs_horseshoe(data = df_t, method.tau = "truncatedCauchy",
+                                         method.sigma = "Jeffreys", burn = 5000, 
+                                         nmc = 10000, thin = 1, alpha = 0.05)
+saveRDS(crime_horseshoe_tc, "~/Documents/Dissertation/main/dissertation/results/crime/crime_horseshoe_tc.rds")
+crime_horseshoe_tc$sel_var
 
 # Half Cauchy prior
-crime_horseshoe_t <- fit_crime_horseshoe_crime(data = df,
-                                                     method.tau = "halfCauchy",
-                                                     tau = 10,
-                                                     method.sigma = "Jeffreys", 
-                                                     burn = 1000, 
-                                                     nmc = 5000, 
-                                                     thin = 10, 
-                                                     alpha = 0.05)
-
-
+crime_horseshoe_hc <- fit_hs_horseshoe(data = df_t, method.tau = "halfCauchy",
+                                             method.sigma = "Jeffreys", 
+                                             burn = 5000, nmc = 10000, 
+                                             thin = 1, alpha = 0.05)
+saveRDS(crime_horseshoe_hc, "~/Documents/Dissertation/main/dissertation/results/crime/crime_horseshoe_hc.rds")
+crime_horseshoe_hc$sel_var
 
 
 #### CRIME. HORSESHOE PRIOR 'bayesreg' ####
 
 # Fit the model
-hs_bs_crime <- fit_horseshoe_bs_crime(data = df, prior = "hs")
-
+hs_bs_crime <- fit_horseshoe_bs(data = df_t, prior = "hs")
+saveRDS(hs_bs_crime, "~/Documents/Dissertation/main/dissertation/results/crime/hs_bs_crime.rds")
 
 
 
 #### CRIME. HORSESHOE + PRIOR 'bayesreg' ####
 
 # Fit the model
-hsp_bs_crime <- fit_horseshoe_bs_crime(data = df, prior = "hs+")
+hsp_bs_crime <- fit_horseshoe_bs(data = df_t, prior = "hs+")
+saveRDS(hsp_bs_crime, "~/Documents/Dissertation/main/dissertation/results/crime/hsp_bs_crime.rds")
 
-
-
+hs_bs_crime$selected_variables
+hsp_bs_crime$selected_variables
 
 #### CRIME. SSS 'BayesS5' ####
 
 # Fit the model
-S5_crime <- fit_S5_crime(data = df)# %>% results()
+S5_crime <- fit_S5(data = df_t)# %>% results()
 
 # Print the MAP model
 print(result(S5_crime)$hppm) 
@@ -626,33 +480,5 @@ plot(result(S5_crime)$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion prob
 #### CRIME. BAYESIAN LASSO 'monomvn' ####
 
 # Fit the model
-blasso_crime <- fit_blasso_crime(data = df)
-blasso_crime %>% plot()
-
-## summarize the beta (regression coefficients) estimates
-plot(blasso_crime, burnin = 100)
-points(drop(blasso_crime$b), col = 2, pch = 20)
-points(drop(blasso_crime$b), col = 3, pch = 18)
-legend("topleft", c("blasso-map", "lasso", "lsr"),
-       col = c(2, 2, 3), 
-       pch = c(21, 20, 18))
-
-# Plot the density of the coefficient values
-dev.new(width = 18, height = 10)
-plot(colMeans(blasso_crime$beta))
-
-
-
-
-#### CRIME. RJMCMC 'rjmcmc' ####
-
-
-
-
-
-
-
-
-
-
-
+blasso_crime <- fit_blasso(data = df_t)
+saveRDS(blasso_crime, "~/Documents/Dissertation/main/dissertation/results/crime/blasso_crime.rds")

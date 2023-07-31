@@ -116,7 +116,7 @@ simulate_T2 <- function(p, n, rho = 0.8, sigma_e = sqrt(10), seed = 42) {
   X <- MASS::mvrnorm(n, mu = u_x, Sigma = sigma_x)
   
   # Generate the true regression coefficients beta
-  beta <- c(rep(5, 20), rep(0, p - 20))
+  beta <- c(seq(1, 20, 1), rep(0, p - 20))
   
   # Generate the error terms
   epsilon <- rnorm(n, mean = 0, sd = sigma_e)
