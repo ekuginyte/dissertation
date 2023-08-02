@@ -66,6 +66,9 @@ fit_glmnet <- function(data, nfolds = 10, alpha = 0.5) {
   # Extract the non-zero coefficients
   selected_predictors <- coefficients[selected_variable_names, 1] %>% data.frame()
   
+  # Sort the selected_predictors in descending order by the absolute value of its column
+  selected_predictors <- selected_predictors %>% arrange(desc(abs(selected_predictors[,1])))
+  
   # Return the list of selected predictors and model itself
   return(list(selected_predictors = selected_predictors, model_fit = model_fit))
 }
@@ -198,7 +201,7 @@ fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
 # OUTPUT:
 #     ss_results - The fitted Spike and Slab model.
 #
-fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0, 
+fit_spikeslab_prior <- function(data, bigp_smalln = FALSE, bigp_smalln_factor = 0, 
                                 screen = FALSE, K = 10, seed = -42) {
   
   # Input validation
@@ -244,11 +247,12 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0,
     y = y,
     K = K,
     # The number of iterations in the two MCMC chains used in spikeslab.
-    # n.iter1 is for the first chain, and n.iter2 is for the second chain.
+    # n.iter1 Number of burn-in Gibbs sampled values (i.e., discarded values)
+    #    and n.iter2 is for the number of Gibbs sampled values, following burn-in.
     n.iter1 = 1000,        
     n.iter2 = 5000,        
     # Calculate the mean squared error as part of the model evaluation
-    mse = TRUE,           
+    #mse = TRUE,           
     # High-dimensional low sample size adjustments.
     # bigp.smalln - logical flag, if TRUE adjustments for high-dimensional low sample size are made.
     # bigp.smalln.factor - controls the magnitude of the adjustments.
@@ -256,28 +260,16 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0,
     bigp.smalln.factor = bigp_smalln_factor,   
     # To screen the variables when p is big
     screen = screen,
-    # Random effects. If specified, adds random effects to the model
-    r.effects = NULL,      
-    # Maximum number of variables to be retained in the model
-    max.var = 500,         
-    # If TRUE, the predictors are centered by subtracting their means
-    center = TRUE,         
     # If TRUE, an intercept term is included in the model
-    intercept = FALSE,      
-    # If TRUE, a fast approximation algorithm is used for speed up
-    fast = TRUE,           
-    # The number of blocks into which the coefficients are split for Gibbs sampling
-    beta.blocks = 5,       
+    intercept = TRUE,      
     # If TRUE, outputs progress and additional information while fitting the model
-    verbose = FALSE,       
-    # The number of trees in the ensemble (used if using Bayesian Additive Regression Trees prior)
-    ntree = 300,           
+    verbose = TRUE,       
     # Seed for random number generator, for reproducibility of results
     seed = seed
   )
   
   # Plot the path of the estimates for the Spike and Slab model
-  plot(ss_results, plot.type = "path")
+  #plot(ss_results, plot.type = "path")
   
   # Return the result
   return(ss_results)
@@ -296,10 +288,6 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0,
 #     lambda1 - Slab variance parameter.
 #     lambda0 - Vector of spike penalty parameters.
 #     var - variance of error, unknown of fixed.
-#     theta - Prior mixing proportion.
-#     eps - Convergence criterion.
-#     plot_width - Width of the plot in inches.
-#     plot_height - Height of the plot in inches.
 # OUTPUTS:
 #     A list containing:
 #         coefficients - The fitted matrix of coefficients.
@@ -307,7 +295,7 @@ fit_spikeslab_prior <- function(data, bigp_smalln, bigp_smalln_factor = 0,
 #                        ever selected along the regularization path.
 #         plot - A plot of the coefficient paths for the fitted model.
 fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data), length.out = 100), 
-                        var = "fixed", plot_width = 6, plot_height = 4) {
+                        var = "unknown") {
   # Input checks
   # Check that 'data' is a data frame
   if (!is.data.frame(data)) {
@@ -347,15 +335,6 @@ fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data), length.o
   set.seed(42)
   result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = var,
                     lambda1 = lambda1, lambda0 = lambda0, warn = TRUE)
-  
-  # Set plot margins (bottom, left, top, right)
-  par(mar = c(6, 6, 2, 2))
-  
-  # Set the plot dimensions (width, height) in inches
-  par(pin = c(plot_width, plot_height))
-  
-  # Create the plot of coefficients
-  plot(result)
   
   # Extract selection indicators and determine which variables were ever selected
   selected_variables <- result$select
@@ -465,7 +444,9 @@ fit_hs_horseshoe <- function(data, method.tau, method.sigma = "Jeffreys",
          main = "Credible Intervals for Coefficients")
   
   # Use HS.var.select to get the selected variables
-  selected <- HS.var.select(fit_horseshoe, y = y, method = "intervals", threshold = 0.5)
+  selected <- HS.var.select(fit_horseshoe, y = y, 
+                            # Threshold left as default
+                            method = "intervals", threshold = 0.5)
   
   # The variable names for the selected variables
   variable_names <- colnames(X)
@@ -565,22 +546,26 @@ fit_horseshoe_bs <- function(data, n.samples = 1000, burnin = 200,
 
 #### SSS WITH SCREENING 'BayesS5' NOT finished ####
 
-# Fits a sparse Bayesian linear regression model using the BayesS5 package. 
+# This function fits a sparse Bayesian linear regression model using the BayesS5 package. 
 #   The S5 function promotes sparsity in the regression coefficients.
 #
-# INPUTS:
+# Inputs:
 #     data - Data frame where the first column is the response variable, 
 #            and the remaining columns are predictors.
 #     ind_fun - A function to define the inclusion indicators of the model.
+#               Default: ind_fun_pimom.
 #     model - An object of class Model defining the prior distribution.
-#     tuning - Tuning parameter for the S5 function.
+#             Bernoulli_Uniform or Uniform. Default is Bernoulli_Uniform.
 #     C0 - Normalisation constant for the S5 function.
+#     type - a type of nonlocal priors; ’pimom’ or ’pemom’.
+#     has_binary - Logical, TRUE when data includes a binary variable 
+#                 (first 2 columns).
 #
-# OUTPUTS:
-#     fit_S5 - An S5 object, which is the fitted model.
+# Outputs:
+#     list containing the fitted model, model summary, and selected variables.
 #
-fit_S5 <- function(data, ind_fun = ind_fun_pemom, model = Uniform, 
-                   tuning = 100, C0 = 2) {
+fit_S5 <- function(data, ind_fun = ind_fun_pimom, model = Bernoulli_Uniform, 
+                  C0 = 5, type = "pimom", has_binary = FALSE) {
   
   # Ensure data is a data frame
   if (!is.data.frame(data)) {
@@ -592,13 +577,19 @@ fit_S5 <- function(data, ind_fun = ind_fun_pemom, model = Uniform,
     stop("'ind_fun' must be a function.")
   }
   
-  # Ensure 'tuning' and 'C0' are positive numerics
-  if (!is.numeric(tuning) || tuning <= 0) {
-    stop("'tuning' must be a positive numeric value.")
+  # Check if 'type' is either 'pimom' or 'pemom'
+  if (!(type %in% c("pimom", "pemom"))) {
+    stop("'type' must be either 'pimom' or 'pemom'.")
   }
   
+  # Check 'C0' is a positive numeric value
   if (!is.numeric(C0) || C0 <= 0) {
     stop("'C0' must be a positive numeric value.")
+  }
+  
+  # Check if the flag 'has_binary' is a logical value
+  if (!is.logical(has_binary)) {
+    stop("'has_binary' must be a logical value.")
   }
   
   # Separate response variable (y) and predictors (X)
@@ -607,97 +598,103 @@ fit_S5 <- function(data, ind_fun = ind_fun_pemom, model = Uniform,
   # Remove target from data and convert into a matrix
   X <- model.matrix(~ . - 1, data = data[, -which(names(data) == "y")])
   
-  # Scale the matrix
-  X <- scale(X)
+  # Check if data has binary variables
+  if (has_binary) {
+    # If it does, remove the first binary variable and scale the rest
+    X <- scale(X[, -1])
+  } else {
+    # If it doesn't, scale the whole matrix
+    X <- scale(X)
+  }
   
+  # Tuning parameters before fitting the model
   # Set seed for reproducibility
   set.seed(42)
+  tuning <- hyper_par(type = type, X = X, y = y)
   
   # Fit the model using the S5 function from the BayesS5 package
+  set.seed(42)
   fit_S5 <- BayesS5::S5(X = X, y = y, ind_fun = ind_fun, model = model,
                         tuning = tuning, C0 = C0)
   
-  # Return the fitted model
-  return(fit_S5)
+  # Save the results of the model
+  fit_S5_res <- result(fit_S5)
+  
+  # Extract the marginal probabilities
+  marg_probs <- fit_S5_res$marg.prob %>% round(0)
+  
+  # Get the variable names
+  var_names <- colnames(X)
+  
+  # Create a data frame with variable names and inclusion probabilities
+  selected_variables <- data.frame(Variable = var_names, Included = marg_probs)
+  
+  # Return the fitted model, results summary and selected variables
+  return(list(model = fit_S5, summary = fit_S5_res, selected_variables = selected_variables))
 }
-
-
-
 
 
 #### BAYESIAN LASSO 'monomvn' ####
 
 # Function to fit a Bayesian LASSO regression model using the 'monomvn' package.
-#
-# This function performs hyperparameter tuning and variable selection in a
-#   Bayesian LASSO regression model. It uses cross-validation for the hyperparameter
-#   tuning and includes the ability to perform Reversible Jump MCMC.
+#   This function performs hyperparameter tuning and variable selection in a 
+#   Bayesian LASSO regression model. Includes the ability to perform RJMCMC.
 #
 # INPUTS:
-#   data - Data frame where the first column is the response variable, 
-#         and the remaining columns are predictors.
+#   data - A data frame where the first column is the response variable, 
+#          and the remaining columns are predictors.
 #   T - Number of iterations in the MCMC chain.
 #   RJ - Logical flag indicating whether to perform Reversible Jump MCMC.
 #   verb - Verbosity level of the function's output.
-#   cv_folds - Number of cross validations.
-#   lambda_seq - Sequence of lambda2 values to loop over for tuning.
+#   lambda2 - Value for penalty.
+#   threshold - Threshold for variable selection based on the posterior 
+#               inclusion probabilities.
+#   burnin - Burnin value.
 #
 # OUTPUTS:
 #   A list containing:
 #     model: The fitted Bayesian LASSO regression model.
-#     best_lambda2: The value of lambda2 that minimized the cross-validation error.
-#     selected_variables: The names of the variables that were selected by the model.
+#     var_prob: The posterior inclusion probabilities of each predictor.
+#     sel_var_df: The variables that were selected by the model
+#               based on the threshold with probabilities.
 #
-fit_blasso <- function(data, cat_var = FALSE, T = 5000, RJ = TRUE, verb = 1, 
-                             lambda_seq = c(seq(0.1, 1, by = 0.2), seq(1, 5, 0.5)), threshold = 0.5,
-                             cv_folds = 5) { 
+fit_blasso <- function(data,  T = 5000, RJ = TRUE, verb = 1, lambda2 = 1, 
+                       threshold = 0.5, burnin = 1000) { 
   
   # Input validation
   # Check if the input data is of the correct format: a data frame
   if (!is.data.frame(data)) {
-    # If the input is not a data frame, throw an error and stop execution
     stop("'data' must be a data frame.")
-  }
-  
-  # Ensure cat_var is a logical
-  if (!is.logical(cat_var)) {
-    stop("Input 'cat_var' must be a logical (TRUE or FALSE).")
   }
   
   # Check if the number of iterations 'T' is a positive numeric value
   if (!is.numeric(T) || T <= 0) {
-    # If 'T' is not a positive number, throw an error and stop execution
     stop("'T' must be a positive numeric value.")
+  }
+  
+  # Check if the lambda2 is a positive numeric value
+  if (!is.numeric(lambda2) || lambda2 <= 0) {
+    stop("'lambda2' must be a positive numeric value.")
+  }
+  
+  # Check if the burnin is a positive numeric value
+  if (!is.numeric(burnin) || burnin <= 0) {
+    stop("'burnin' must be a positive numeric value.")
   }
   
   # Check if the flag 'RJ' is a logical value
   if (!is.logical(RJ)) {
-    # If 'RJ' is not a logical value (TRUE/FALSE), throw an error and stop execution
     stop("'RJ' must be a logical value.")
   }
   
   # Check if the verbosity level 'verb' is a non-negative numeric value
   if (!is.numeric(verb) || verb < 0) {
-    # If 'verb' is not a non-negative number, throw an error and stop execution
     stop("'verb' must be a non-negative numeric value.")
   }
   
-  # Check if the number of cross-validation folds 'cv_folds' is a positive numeric value
-  if (!is.numeric(cv_folds) || cv_folds <= 0) {
-    # If 'cv_folds' is not a positive number, throw an error and stop execution
-    stop("'cv_folds' must be a positive numeric value.")
-  }
-  
-  # Check if the number of cross-validation folds 'cv_folds' is a positive numeric value
-  if (!is.numeric(threshold) || threshold <= 0) {
-    # If 'threshold' is not a positive number, throw an error and stop execution
-    stop("'threshold' must be a positive numeric value.")
-  }
-  
-  # Check if the sequence of lambda values 'lambda_seq' is a numeric vector
-  if (!is.numeric(lambda_seq)) {
-    # If 'lambda_seq' is not a numeric vector, throw an error and stop execution
-    stop("'lambda_seq' must be a numeric vector.")
+  # Check if the threshold is a numeric value between 0 and 1
+  if (!is.numeric(threshold) || threshold < 0 || threshold > 1) {
+    stop("'threshold' must be a numeric value between 0 and 1.")
   }
   
   # Extract the target
@@ -706,66 +703,34 @@ fit_blasso <- function(data, cat_var = FALSE, T = 5000, RJ = TRUE, verb = 1,
   # Remove the original categorical variables
   data <- data.frame(subset(data, select = -y))
   
-  # Initialize variables for cross-validation
-  cv_errors <- numeric(length(lambda_seq))
-  fold_size <- round(nrow(data) / cv_folds)
-  
   # Set seed for reproducibility outside the loop
   set.seed(42)
   
-  # Loop over lambda values
-  for (i_lambda in seq_along(lambda_seq)) {
-    lambda2 <- lambda_seq[i_lambda]
-    
-    # Cross-validation loop
-    for (fold in seq_len(cv_folds)) {
-      # Index for validation set
-      val_idx <- ((fold - 1) * fold_size + 1):(fold * fold_size)
-      
-      # Split the data into training and validation sets
-      X_train <- data[-val_idx, ]
-      y_train <- y[-val_idx]
-      X_val <- data[val_idx, ]
-      y_val <- y[val_idx]
-      
-      # Fit the model on the training set
-      fit <- monomvn::blasso(X = X_train, y = y_train, T = T, RJ = RJ, 
-                             lambda2 = lambda2, verb = verb)
-      
-      # Generate predictions for each draw from the posterior (after burn-in)
-      y_pred <- sapply(201:ncol(fit$beta), function(i) rowSums(X_val * fit$beta[i, ]))
-      
-      # Compute and store the mean squared error
-      cv_errors[i_lambda] <- cv_errors[i_lambda] + mean((y_val - rowMeans(y_pred))^2) / cv_folds
-    }
-  }
-  
-  # Select lambda2 that minimizes the cross-validation error
-  best_lambda2 <- lambda_seq[which.min(cv_errors)]
-  
-  # Refit the model on the full dataset with the selected lambda2 value
-  fit_blasso <- monomvn::blasso(X = data, y = y, lambda2 = best_lambda2, RJ = RJ, 
+  # Fit the model on the full dataset
+  blasso_model <- monomvn::blasso(X = data, y = y, lambda2 = 1, RJ = RJ, 
                                 T = T, verb = verb)
   
   # Get the summary with burn-in
-  blasso_summary <- summary(fit_blasso, burnin = 1000)
+  blasso_summary <- summary(blasso_model, burnin = burnin)
   
-  # Extract the names of variables selected based on the threshold
-  sel_var_names <- colnames(data)[blasso_summary$bn0 > threshold]
+  # Get the probabilities of each variable
+  var_prob <- blasso_summary$bn0
   
-  # Return the fitted model and the selected lambda2 value
-  return(list(model = fit_blasso, best_lambda2 = best_lambda2, 
-              sel_var = sel_var))
+  # Extract the variable names selected based on the threshold
+  sel_var <- colnames(data)[blasso_summary$bn0 > threshold]
+  
+  # Extract the variable probabilities selected based on the threshold
+  sel_var_prob <- var_prob[blasso_summary$bn0 > threshold]
+  
+  # Create a data frame with variable names and respective probabilities
+  sel_var_df <- data.frame(Variable = sel_var, Probability = sel_var_prob)
+  
+  # Order data frame by probability in descending order
+  sel_var_df <- sel_var_df[order(-sel_var_df$Probability), ]
+  
+  # Return the fitted model, variable inclusion probabilities ,
+  #   selected variables above a threshold
+  return(list(model = blasso_model, var_prob = var_prob, 
+              sel_var_df = sel_var_df))
 }
-
-
-
-
-
-
-
-
-
-
-
 

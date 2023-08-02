@@ -1,10 +1,11 @@
 #### SET UP ####
 
 # Combine the list of libraries from both scripts
-library_list <- c("tidyverse", "corrplot", "betareg", "R.matlab", "glmnet", "dplyr", 
-                  "cowplot", "coda", "car", "igraph", "R6", "nimble", "MASS", "xgboost",
-                  "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", "Hmisc",
-                  "LaplacesDemon", "BayesS5", "monomvn", "Hmisc", "gridExtra", "maps")
+library_list <- c("tidyverse", "corrplot", "glmnet", "cowplot", "car", "MASS", 
+                  "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", 
+                  "Hmisc", "BayesS5", "monomvn", "gridExtra", "ggpubr")
+
+#ipgrah, R6, xgboost, kableExtra, knitr
 
 # Un-comment the following lines if you need to install the packages
 # for (i in library_list) {
@@ -327,28 +328,28 @@ hsp_bs_T4_VD[["rank"]]
 
 # Fit the model
 # T1 Data
-S5_T1_LD <- fit_S5(data = T1_LD)# %>% results()
-S5_T1_ED <- fit_S5(data = T1_ED)# %>% results()
-S5_T1_HD <- fit_S5(data = T1_HD)# %>% results()
-S5_T1_VD <- fit_S5(data = T1_VD)# %>% results()
+S5_T1_LD <- fit_S5(data = T1_LD)
+S5_T1_ED <- fit_S5(data = T1_ED)
+S5_T1_HD <- fit_S5(data = T1_HD)
+S5_T1_VD <- fit_S5(data = T1_VD)
 
 # T2 Data
-S5_T2_LD <- fit_S5(data = T2_LD)# %>% results()
-S5_T2_ED <- fit_S5(data = T2_ED)# %>% results()
-S5_T2_HD <- fit_S5(data = T2_HD)# %>% results()
-S5_T2_VD <- fit_S5(data = T2_VD)# %>% results()
+S5_T2_LD <- fit_S5(data = T2_LD)
+S5_T2_ED <- fit_S5(data = T2_ED)
+S5_T2_HD <- fit_S5(data = T2_HD)
+S5_T2_VD <- fit_S5(data = T2_VD)
 
 # T3 Data
-S5_T3_LD <- fit_S5(data = T3_LD)# %>% results()
-S5_T3_ED <- fit_S5(data = T3_ED)# %>% results()
-S5_T3_HD <- fit_S5(data = T3_HD)# %>% results()
-S5_T3_VD <- fit_S5(data = T3_VD)# %>% results()
+S5_T3_LD <- fit_S5(data = T3_LD, has_binary = TRUE)
+S5_T3_ED <- fit_S5(data = T3_ED, has_binary = TRUE)
+S5_T3_HD <- fit_S5(data = T3_HD, has_binary = TRUE)
+S5_T3_VD <- fit_S5(data = T3_VD, has_binary = TRUE)
 
 # T4 Data
-S5_T4_LD <- fit_S5(data = T4_LD)# %>% results()
-S5_T4_ED <- fit_S5(data = T4_ED)# %>% results()
-S5_T4_HD <- fit_S5(data = T4_HD)# %>% results()
-S5_T4_VD <- fit_S5(data = T4_VD)# %>% results()
+S5_T4_LD <- fit_S5(data = T4_LD, has_binary = TRUE)
+S5_T4_ED <- fit_S5(data = T4_ED, has_binary = TRUE)
+S5_T4_HD <- fit_S5(data = T4_HD, has_binary = TRUE)
+S5_T4_VD <- fit_S5(data = T4_VD, has_binary = TRUE)
 
 #### SIM DATA. BAYESIAN LASSO 'monomvn' ####
 
@@ -376,6 +377,8 @@ blasso_T4_ED <- fit_blasso(data = T4_ED)
 blasso_T4_HD <- fit_blasso(data = T4_HD)
 blasso_T4_VD <- fit_blasso(data = T4_VD)
 
+blasso_T4_VD$sel_var
+
 #### SOURCE CRIME DATA ####
 
 # Source the file that contains the crime data
@@ -385,14 +388,11 @@ source("data_crime_raw.R")
 
 # Run the LASSO function and extract the selected coefficients
 crime_lasso <- fit_glmnet(data = df_t, alpha = 1)
-saveRDS(crime_lasso, "~/Documents/Dissertation/main/dissertation/results/crime/crime_lasso.rds")
 
 #### CRIME. ELNET PENALISED REGRESSION 'glmnet' ####
 
 # Run the elnet function and extract the selected coefficients
 crime_elnet <- fit_glmnet(data = df_t, alpha = 0.5)
-saveRDS(crime_elnet, "~/Documents/Dissertation/main/dissertation/results/crime/crime_elnet.rds")
-
 
 #### CRIME. XGBOOST ####
 
@@ -404,29 +404,15 @@ crime_xgboost <- fit_xgb(data = df_t, xgb_cv = xgb_cv, xgb_grid = xgb_grid)
 # Save the model object to a RDS file
 saveRDS(crime_xgboost, file = "~Downloads/crime_xgboost.rds")
 
-
 #### CRIME. SPIKE AND SLAB PRIOR 'spikeslab' ####
 
 # Fit spikeslab model
 crime_spikeslab_prior <- fit_spikeslab_prior(data = df_t, bigp_smalln = FALSE)
-saveRDS(crime_spikeslab_prior, "~/Documents/Dissertation/main/dissertation/results/crime/crime_spikeslab_prior.rds")
-
-crime_spikeslab_prior$spikeslab.obj
 
 #### CRIME. SPIKE AND SLAB LASSO 'SSLASSO' ####
 
 # Call the function with the Crimes data
 crime_ssl <- fit_sslasso(data = df_t, var = "fixed")
-saveRDS(crime_ssl, "~/Documents/Dissertation/main/dissertation/results/crime/crime_ssl.rds")
-#sslasso_crime
-
-# The output contains coefficients, ever_selected, and plot
-crime_ssl$coefficients
-crime_ssl$ever_selected
-
-crime_ssl$selected_variable_names
-
-
 
 #### CRIME. HORSESHOE PRIOR 'horseshoe' ####
 
@@ -435,50 +421,43 @@ crime_ssl$selected_variable_names
 crime_horseshoe_tc <- fit_hs_horseshoe(data = df_t, method.tau = "truncatedCauchy",
                                          method.sigma = "Jeffreys", burn = 5000, 
                                          nmc = 10000, thin = 1, alpha = 0.05)
-saveRDS(crime_horseshoe_tc, "~/Documents/Dissertation/main/dissertation/results/crime/crime_horseshoe_tc.rds")
-crime_horseshoe_tc$sel_var
 
 # Half Cauchy prior
 crime_horseshoe_hc <- fit_hs_horseshoe(data = df_t, method.tau = "halfCauchy",
                                              method.sigma = "Jeffreys", 
                                              burn = 5000, nmc = 10000, 
                                              thin = 1, alpha = 0.05)
-saveRDS(crime_horseshoe_hc, "~/Documents/Dissertation/main/dissertation/results/crime/crime_horseshoe_hc.rds")
-crime_horseshoe_hc$sel_var
-
 
 #### CRIME. HORSESHOE PRIOR 'bayesreg' ####
 
 # Fit the model
 hs_bs_crime <- fit_horseshoe_bs(data = df_t, prior = "hs")
-saveRDS(hs_bs_crime, "~/Documents/Dissertation/main/dissertation/results/crime/hs_bs_crime.rds")
-
-
 
 #### CRIME. HORSESHOE + PRIOR 'bayesreg' ####
 
 # Fit the model
 hsp_bs_crime <- fit_horseshoe_bs(data = df_t, prior = "hs+")
-saveRDS(hsp_bs_crime, "~/Documents/Dissertation/main/dissertation/results/crime/hsp_bs_crime.rds")
-
-hs_bs_crime$selected_variables
-hsp_bs_crime$selected_variables
 
 #### CRIME. SSS 'BayesS5' ####
 
 # Fit the model
-S5_crime <- fit_S5(data = df_t)# %>% results()
+S5_crime <- fit_S5(data = df_t)
 
-# Print the MAP model
-print(result(S5_crime)$hppm) 
-print(result(S5_crime)$hppm.prob) # the posterior probability of the hppm
-plot(result(S5_crime)$marg.prob, ylim = c(0, 1), ylab = "marginal inclusion probability")
-
-
+# Convert to a data frame
+S5_crime_df <- data.frame(Variable = names(S5_crime$marg.prob), 
+                 Probability = S5_crime$marg.prob)
+# Create the plot
+ggplot(S5_crime_df, aes(x = reorder(Variable, Probability), y = Probability)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Variable", y = "Marginal Inclusion Probability") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  coord_flip()
 
 
 #### CRIME. BAYESIAN LASSO 'monomvn' ####
 
 # Fit the model
 blasso_crime <- fit_blasso(data = df_t)
-saveRDS(blasso_crime, "~/Documents/Dissertation/main/dissertation/results/crime/blasso_crime.rds")
+
+saveRDS(blasso_crime, file = "~/Downloads/blasso/blasso_crime.rds")

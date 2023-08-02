@@ -1,14 +1,147 @@
-@ARTICLE{Meier2008,
-title = {The group lasso for logistic regression},
-author = {Meier, Lukas and Van De Geer, Sara and Bühlmann, Peter},
-year = {2008},
-journal = {Journal of the Royal Statistical Society Series B},
-volume = {70},
-number = {1},
-pages = {53-71},
-abstract = {Summary. The group lasso is an extension of the lasso to do variable selection on (predefined) groups of variables in linear regression models. The estimates have the attractive property of being invariant under groupwise orthogonal reparameterizations. We extend the group lasso to logistic regression models and present an efficient algorithm, that is especially suitable for high dimensional problems, which can also be applied to generalized linear models to solve the corresponding convex optimization problem. The group lasso estimator for logistic regression is shown to be statistically consistent even if the number of predictors is much larger than sample size but with sparse true underlying structure. We further use a two‐stage procedure which aims for sparser models than the group lasso, leading to improved prediction performance for some cases. Moreover, owing to the two‐stage nature, the estimates can be constructed to be hierarchical. The methods are used on simulated and real data sets about splice site detection in DNA sequences.},
-url = {https://EconPapers.repec.org/RePEc:bla:jorssb:v:70:y:2008:i:1:p:53-71},
-doi={10.1111/j.1467-9868.2007.00627.x}
+@Manual{R-bayesreg,
+  title = {bayesreg: Bayesian Regression Models with Global-Local Shrinkage Priors},
+  author = {{Daniel F. Schmidt} and {Enes Makalic}},
+  year = {2021},
+  note = {R package version 1.2},
+  url = {https://CRAN.R-project.org/package=bayesreg},
+}
+
+@Manual{R-BayesS5,
+  title = {BayesS5: Bayesian Variable Selection Using Simplified Shotgun Stochastic
+Search with Screening (S5)},
+  author = {Minsuk Shin and Ruoxuan Tian},
+  year = {2020},
+  note = {R package version 1.41},
+  url = {https://arxiv.org/abs/1507.07106v4},
+}
+
+@Manual{R-car,
+  title = {car: Companion to Applied Regression},
+  author = {John Fox and Sanford Weisberg and Brad Price},
+  year = {2022},
+  note = {R package version 3.1-1},
+  url = {https://CRAN.R-project.org/package=car},
+}
+
+@Manual{R-caret,
+  title = {caret: Classification and Regression Training},
+  author = {Max Kuhn},
+  year = {2023},
+  note = {R package version 6.0-94},
+  url = {https://github.com/topepo/caret/},
+}
+
+@Manual{R-corrplot,
+  title = {corrplot: Visualization of a Correlation Matrix},
+  author = {Taiyun Wei and Viliam Simko},
+  year = {2021},
+  note = {R package version 0.92},
+  url = {https://github.com/taiyun/corrplot},
+}
+
+@Manual{R-cowplot,
+  title = {cowplot: Streamlined Plot Theme and Plot Annotations for ggplot2},
+  author = {Claus O. Wilke},
+  year = {2020},
+  note = {R package version 1.1.1},
+  url = {https://wilkelab.org/cowplot/},
+}
+
+@Manual{R-ggpubr,
+  title = {ggpubr: ggplot2 Based Publication Ready Plots},
+  author = {Alboukadel Kassambara},
+  year = {2020},
+  note = {R package version 0.4.0},
+  url = {https://rpkgs.datanovia.com/ggpubr/},
+}
+
+@Manual{R-glmnet,
+  title = {glmnet: Lasso and Elastic-Net Regularized Generalized Linear Models},
+  author = {Jerome Friedman and Trevor Hastie and Rob Tibshirani and Balasubramanian Narasimhan and Kenneth Tay and Noah Simon and James Yang},
+  year = {2022},
+  note = {R package version 4.1-4},
+  url = {https://CRAN.R-project.org/package=glmnet},
+}
+
+@Manual{R-gridExtra,
+  title = {gridExtra: Miscellaneous Functions for "Grid" Graphics},
+  author = {Baptiste Auguie},
+  year = {2017},
+  note = {R package version 2.3},
+  url = {https://CRAN.R-project.org/package=gridExtra},
+}
+
+@Manual{R-Hmisc,
+  title = {Hmisc: Harrell Miscellaneous},
+  author = {Harrell, Jr., Frank E},
+  year = {2022},
+  note = {R package version 4.7-1},
+  url = {https://hbiostat.org/R/Hmisc/},
+}
+
+@Manual{R-horseshoe,
+  title = {horseshoe: Implementation of the Horseshoe Prior},
+  author = {Stephanie {van der Pas} and James Scott and Antik Chakraborty and Anirban Bhattacharya},
+  year = {2019},
+  note = {R package version 0.2.0},
+  url = {https://CRAN.R-project.org/package=horseshoe},
+}
+
+@Manual{R-kableExtra,
+  title = {kableExtra: Construct Complex Table with kable and Pipe Syntax},
+  author = {Hao Zhu},
+  year = {2021},
+  note = {R package version 1.3.4},
+  url = {https://CRAN.R-project.org/package=kableExtra},
+}
+
+@Manual{R-knitr,
+  title = {knitr: A General-Purpose Package for Dynamic Report Generation in R},
+  author = {Yihui Xie},
+  year = {2022},
+  note = {R package version 1.40},
+  url = {https://yihui.org/knitr/},
+}
+
+@Manual{R-MASS,
+  title = {MASS: Support Functions and Datasets for Venables and Ripley's MASS},
+  author = {Brian Ripley},
+  year = {2022},
+  note = {R package version 7.3-58.1},
+  url = {http://www.stats.ox.ac.uk/pub/MASS4/},
+}
+
+@Manual{R-monomvn,
+  title = {monomvn: Estimation for MVN and Student-t Data with Monotone Missingness},
+  author = {Robert B. Gramacy and with Fortran contributions from Cleve Moler as updated by Berwin A. Turlach (qpgen2/quadprog)},
+  year = {2023},
+  note = {R package version 1.9-17},
+  url = {https://bobby.gramacy.com/r_packages/monomvn/},
+}
+
+@Manual{R-spikeslab,
+  title = {spikeslab: Prediction and Variable Selection Using Spike and Slab
+Regression},
+  author = {Hemant Ishwaran},
+  year = {2022},
+  note = {R package version 1.1.6},
+  url = {https://ishwaran.org/},
+}
+
+@Manual{R-SSLASSO,
+  title = {SSLASSO: The Spike-and-Slab LASSO},
+  author = {Veronika Rockova and Gemma Moran},
+  year = {2019},
+  note = {R package version 1.2-2},
+  url = {http://faculty.chicagobooth.edu/veronika.rockova/ssl.pdf},
+}
+
+@Manual{R-tidyverse,
+  title = {tidyverse: Easily Install and Load the Tidyverse},
+  author = {Hadley Wickham},
+  year = {2023},
+  note = {R package version 2.0.0},
+  url = {https://CRAN.R-project.org/package=tidyverse},
 }
 @misc{Bhadra2016,
       title={Default Bayesian analysis with global-local shrinkage priors}, 
@@ -653,7 +786,7 @@ doi = {10.1111/j.1467-9868.2005.00503.x}
    keywords = {Bayes factors,Bayesian multimodel inference,Markov chain Monte Carlo,automatic differentiation},
    pages = {189-212},
    publisher = {John Wiley and Sons Inc},
-   title = {R Package rjmcmc: Reversible Mump MCMC Using Post-Processing},
+   title = {R Package rjmcmc: Reversible Jump MCMC Using Post-Processing},
    volume = {61},
    year = {2019},
 }
