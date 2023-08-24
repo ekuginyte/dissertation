@@ -1,6 +1,7 @@
 #### PENALISED REGRESSION 'glmnet' ####
 
-# Function to fit penalised regression on different datasets and extract the selected predictors
+# Function to fit penalised regression on different datasets and extract the 
+#   selected predictors
 # INPUTS:
 #         data - a data frame containing the predictors and the response variable.
 #                The response variable should be named "y".
@@ -8,9 +9,10 @@
 #         alpha - numeric entry 1 for Lasso, 0.5 for Elastic Net.
 # OUTPUT:
 #         A list containing:
-#               selected_predictors - a data frame with the predictors selected by the model 
-#                                     with their respective coefficients.
+#               selected_predictors - a data frame with the predictors selected 
+#                                     by the model with their respective coefficients.
 #               model_fit - the fitted glmnet model.
+#               model_cv - cross-validated penalty model.
 #
 fit_glmnet <- function(data, nfolds = 10, alpha = 0.5) {
   
@@ -38,16 +40,17 @@ fit_glmnet <- function(data, nfolds = 10, alpha = 0.5) {
   # Extract the target
   y <- data$y
     
-  # Remove the original categorical variables
+  # Remove y
   data <- data.frame(subset(data, select = -y))
     
-  # Combine intercept, scaled continuous variables
-  X <- model.matrix(~ . - 1, data = data)
+  # Combine intercept, variables
+  X <- model.matrix(~ . -1, data = data)
   
   # Perform k-fold cross-validation to find the optimal value of the regularisation 
   #   parameter lambda that minimises the cross-validation error
   set.seed(7)
-  model_cv <- cv.glmnet(x = X, y = y, alpha = alpha, nfolds = nfolds)
+  model_cv <- cv.glmnet(x = X, y = y, alpha = alpha, nfolds = nfolds, 
+                        standardize = FALSE)
   
   # Plot the cross-validation errors as a function of lambda.
   plot(model_cv)
@@ -55,7 +58,8 @@ fit_glmnet <- function(data, nfolds = 10, alpha = 0.5) {
   
   # Refit the model using the optimal lambda value obtained from cross-validation
   set.seed(7)
-  model_fit <- glmnet(x = X, y = y, alpha = alpha, lambda = model_cv$lambda.min)
+  model_fit <- glmnet(x = X, y = y, alpha = alpha, lambda = model_cv$lambda.min,
+                      standardize = FALSE)
   
   # Extract the coefficients from the  model
   coefficients <- coef(model_fit, s = model_fit$lambda.min)
@@ -70,11 +74,9 @@ fit_glmnet <- function(data, nfolds = 10, alpha = 0.5) {
   selected_predictors <- selected_predictors %>% arrange(desc(abs(selected_predictors[,1])))
   
   # Return the list of selected predictors and model itself
-  return(list(selected_predictors = selected_predictors, model_fit = model_fit))
+  return(list(selected_predictors = selected_predictors, model_fit = model_fit, 
+              model_cv = model_cv))
 }
-
-
-
 
 #### XGBOOST 'caret' ####
 
@@ -83,17 +85,17 @@ fit_glmnet <- function(data, nfolds = 10, alpha = 0.5) {
 # INPUTS:
 #         data - a data frame containing the predictors and the response variable.
 #                The response variable should be named "y".
-#         cat_var - logical factor if there are categorical variables.
 #         xgb_cv   - a trainControl object defining the cross-validation strategy.
 #         xgb_grid - a data frame defining the grid of hyperparameters to search over.
 # OUTPUT:
 #         A list containing:
 #               model - the trained XGBoost model.
-#               rmse  - the root mean squared error (RMSE) of the model on the test set.
-#               feature_importance - a data frame showing the importance of each feature.
+#               rmse  - the root mean squared error of the model on the test set.
+#               feature_importance - a data frame showing the importance of each 
+#                                    feature.
 #               importance_plot - a plot object showing the feature importance.
 #
-fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
+fit_xgb <- function(data, xgb_cv = xgb_cv, xgb_grid = xgb_grid) {
   
   # Input validation
   if (!is.data.frame(data)) {
@@ -104,27 +106,15 @@ fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
   if (!"y" %in% names(data)) {
     stop("data should contain a column named 'y' as the response variable.")
   }
-  
-  # Check if xgb_grid is a valid data frame with required columns
-  if (!is.data.frame(xgb_grid) || 
-      !all(c("nrounds", "max_depth", "eta", "gamma", "colsample_bytree", "min_child_weight", "subsample") %in% names(xgb_grid))) {
-    stop("xgb_grid should be a data frame with hyperparameters to be tuned.")
-  }
-  
-  # Check if xgb_cv is a valid object with required parameters
-  if (!inherits(xgb_cv, "trainControl") || 
-      !all(c("method", "number", "repeats", "verboseIter", "returnData", "returnResamp", "allowParallel") %in% names(xgb_cv))) {
-    stop("xgb_cv should be a trainControl object with appropriate parameters.")
-  }
  
   # Extract the target
   y <- data$y
-    
-  # Remove the target
+  
+  # Remove y
   data <- data.frame(subset(data, select = -y))
-    
-  # Combine scaled continuous variables, intercept
-  X <- model.matrix(~ . - 1, data = data)
+  
+  # Combine intercept, variables
+  X <- model.matrix(~ . + 0, data = data)
   
   # Split the dataset into training and testing sets
   # createDataPartition helps in creating stratified random samples
@@ -166,8 +156,10 @@ fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
   cat("Root Mean Squared Error on Test Set:", rmse, "\n")
   
   # Extract feature importance from the trained model
-  # Feature importance helps in understanding which features are most influential in making predictions
-  importance_matrix <- xgb.importance(feature_names = colnames(X), model = xgb_model$finalModel)
+  # Feature importance helps in understanding which features are most influential 
+  #   in making predictions
+  importance_matrix <- xgboost::xgb.importance(feature_names = colnames(X), 
+                                               model = xgb_model$finalModel)
   
   # Save the plot to an object so it can be returned
   importance_plot <- recordPlot(xgb.plot.importance(importance_matrix))
@@ -181,9 +173,6 @@ fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
   ))
 }
 
-
-
-
 #### SPIKE AND SLAB PRIOR 'spikeslab' #### 
 
 # Function to fit a Spike and Slab prior model using 'spikeslab' package and 
@@ -191,18 +180,27 @@ fit_xgb <- function(data, cat_var = FALSE, xgb_cv, xgb_grid) {
 #   estimates for the Spike and Slab model.
 #
 # INPUTS:
-#     data               - A data frame containing the predictors and the response variable.
+#     data               - A data frame containing the predictors and the 
+#                             response variable.
 #                          The response variable should be named "y".
-#     bigp_smalln        - A logical indicating if the high-dimensional low sample size adjustments
+#     bigp_smalln        - A logical indicating if the high-dimensional low 
+#                             sample size adjustments
 #                          should be made. Should be either TRUE or FALSE.
-#     bigp_smalln_factor - A numeric adjustment factor to be used when bigp.smalln is TRUE.
-#     seed               - An NEGATIVE integer used for setting the seed for reproducibility.
+#     bigp_smalln_factor - A numeric adjustment factor to be used when 
+#                             bigp.smalln is TRUE.
+#     seed               - An NEGATIVE integer used for setting the seed for 
+#                             reproducibility.
+#     screen             - Whether to first screen the variables, as defined
+#                             in the package (in p>>n).
 #
 # OUTPUT:
-#     ss_results - The fitted Spike and Slab model.
+#     A list containing:
+#           model - The fitted Spike and Slab model.
+#           results - A data frame containing selected variables with gnet, 
+#                     bma and stability metrics.
 #
 fit_spikeslab_prior <- function(data, bigp_smalln = FALSE, bigp_smalln_factor = 0, 
-                                screen = FALSE, K = 10, seed = -42) {
+                                screen = FALSE, seed = -42) {
   
   # Input validation
   if (!is.data.frame(data)) {
@@ -230,22 +228,21 @@ fit_spikeslab_prior <- function(data, bigp_smalln = FALSE, bigp_smalln_factor = 
   }
     
   # Extract the target
-  y <- scale(data$y)
-    
-  # Remove the 'y' column from the data frame and convert the remaining data into a model matrix
-  X <- model.matrix(~ . - 1, data = data[, -which(names(data) == "y")])
-    
-  # Scale the predictor variables
-  X <- scale(X)
+  y <- data$y
   
-  # Run the spikeslab model
-  ss_results <- spikeslab::cv.spikeslab(
+  # Remove y
+  data <- data.frame(subset(data, select = -y))
+  
+  # Combine intercept, variables
+  X <- model.matrix(~ ., data = data)
+  
+  # Run cv.spikeslab to get the stability measures
+  ss_results <- spikeslab::spikeslab(
     # Formula representing the relationship between predictors and response
     #formula,  
     # The matrix containing the variables in the formula
     x = X,
     y = y,
-    K = K,
     # The number of iterations in the two MCMC chains used in spikeslab.
     # n.iter1 Number of burn-in Gibbs sampled values (i.e., discarded values)
     #    and n.iter2 is for the number of Gibbs sampled values, following burn-in.
@@ -254,25 +251,46 @@ fit_spikeslab_prior <- function(data, bigp_smalln = FALSE, bigp_smalln_factor = 
     # Calculate the mean squared error as part of the model evaluation
     #mse = TRUE,           
     # High-dimensional low sample size adjustments.
-    # bigp.smalln - logical flag, if TRUE adjustments for high-dimensional low sample size are made.
+    # bigp.smalln - logical flag, if TRUE adjustments for high-dimensional low 
+    #   sample size are made.
     # bigp.smalln.factor - controls the magnitude of the adjustments.
     bigp.smalln = bigp_smalln,                 
     bigp.smalln.factor = bigp_smalln_factor,   
     # To screen the variables when p is big
     screen = screen,
     # If TRUE, an intercept term is included in the model
-    intercept = TRUE,      
+    intercept = TRUE,     
+    standardize = FALSE,
     # If TRUE, outputs progress and additional information while fitting the model
     verbose = TRUE,       
     # Seed for random number generator, for reproducibility of results
-    seed = seed
+    seed = seed,
+    # Do not centre
+    center = FALSE
   )
   
+  # Extract bma values
+  bma_val <- data.frame(ss_results$bma)
+  
+  # Extract gnet values 
+  gnet_val <- data.frame(ss_results$gnet)
+  
+  # Merge the data frames
+  results <- data.frame(
+    Variable = rownames(bma_val),
+    bma = bma_val[, 1],
+    gnet = gnet_val[, 1]
+  )
+  
+  # Order by stability descending
+  results <- results %>% 
+    dplyr::arrange(desc(abs(bma))) 
+  
   # Plot the path of the estimates for the Spike and Slab model
-  #plot(ss_results, plot.type = "path")
+  plot(ss_results, plot.type = "path")
   
   # Return the result
-  return(ss_results)
+  return(list(model = ss_results, results = results))
 }
 
 
@@ -284,17 +302,24 @@ fit_spikeslab_prior <- function(data, bigp_smalln = FALSE, bigp_smalln_factor = 
 #   and extract selected variables from a given data frame.
 #
 # INPUTS:
-#     data - Data frame where the first column is the response variable, and the rest are predictors.
+#     data - Data frame where the first column is the response variable, and 
+#             the rest are predictors.
 #     lambda1 - Slab variance parameter.
 #     lambda0 - Vector of spike penalty parameters.
 #     var - variance of error, unknown of fixed.
 # OUTPUTS:
 #     A list containing:
-#         coefficients - The fitted matrix of coefficients.
+#         model - Final fitted SSLASSO model.
+#         coefficients - The fitted matrix of coefficients for all variables 
+#                           and for each lambda.
 #         ever_selected - A binary vector indicating which variables were
 #                        ever selected along the regularization path.
 #         plot - A plot of the coefficient paths for the fitted model.
-fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data), length.out = 100), 
+#         selected_variables - A data frame of selected variable names and
+#               their respective coefficients in descending order.
+#
+fit_sslasso <- function(data, lambda1 = 1, 
+                        lambda0 = seq(1, nrow(data), length.out = 100), 
                         var = "unknown") {
   # Input checks
   # Check that 'data' is a data frame
@@ -311,51 +336,43 @@ fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data), length.o
   if (!is.numeric(lambda0)) {
     stop("'lambda0' must be a numeric sequence.")
   }
-
-  # Check that 'plot_width' is a positive numeric value
-  if (!is.numeric(plot_width) || plot_width <= 0) {
-    stop("'plot_width' must be a positive numeric value.")
-  }
-  
-  # Check that 'plot_height' is a positive numeric value
-  if (!is.numeric(plot_height) || plot_height <= 0) {
-    stop("'plot_height' must be a positive numeric value.")
-  }
   
   # Extract the target
   y <- data$y
-    
-  # Remove the original categorical variables
+  
+  # Remove y
   data <- data.frame(subset(data, select = -y))
-    
-  # Combine scaled continuous variables, intercept
-  X <- model.matrix(~ . - 1, data = data)
+  
+  # Combine intercept, variables
+  X <- model.matrix(~ ., data = data)
   
   # Fit the SSLASSO model
   set.seed(42)
   result <- SSLASSO(X = X, y = y, penalty = "adaptive", variance = var,
                     lambda1 = lambda1, lambda0 = lambda0, warn = TRUE)
   
-  # Extract selection indicators and determine which variables were ever selected
+  # Extract selection indicators and the names of the selected variables
   selected_variables <- result$select
   ever_selected <- apply(selected_variables, 1, max)
-  
-  # Assuming X is a data.frame or matrix
   variable_names <- colnames(X)
-  
-  # selected_variable_indices gives us the indices of the selected variables
   selected_variable_indices <- which(ever_selected == 1)
-  
-  # Get the names of the selected variables
   selected_variable_names <- variable_names[selected_variable_indices]
   
+  # Get the coefficients of the selected variables
+  selected_coefficients <- result$beta[selected_variable_indices, ]
+  final_selected_coefficients <- selected_coefficients[, ncol(selected_coefficients)]
+  
+  # Create a data frame of selected variable names and their coefficients, 
+  #   sorted by absolute value of coefficient
+  selected_variables_df <- data.frame(Variable = selected_variable_names, 
+                                      Coefficient = final_selected_coefficients)
+  selected_variables_df <- selected_variables_df[order(abs(selected_variables_df$Coefficient), 
+                                                       decreasing = TRUE), ]
+  
   # Return the results as a list
-  return(list(coefficients = result$beta, ever_selected = ever_selected, 
-              selected_variable_names = selected_variable_names, plot = result))
+  return(list(model = result, coefficients = result$beta, ever_selected = ever_selected, 
+              plot = result, selected_variables = selected_variables_df))
 }
-
-
-
 
 #### HORSESHOE PRIOR. 'horseshoe' ####
 
@@ -363,7 +380,8 @@ fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data), length.o
 # and plot credible intervals for coefficients.
 #
 # INPUTS:
-#     data - Data frame where the first column is the response variable, and the rest are predictors.
+#     data - Data frame where the first column is the response variable, and the 
+#               rest are predictors.
 #     method.tau - Method for handling tau (truncatedCauchy, halfCauchy, or fixed).
 #     method.sigma - Method for handling sigma (Jeffreys or fixed).
 #     burn - Number of burn-in MCMC samples.
@@ -374,6 +392,8 @@ fit_sslasso <- function(data, lambda1 = 1, lambda0 = seq(1, nrow(data), length.o
 #     A list containing:
 #       - model: The fitted horseshoe model.
 #       - sel_var: The names of the selected variables in the model.
+#       - plot_CI: Plot of credible intervals.
+#       - plot_pred: Plot predicted values against the observed data.
 #
 fit_hs_horseshoe <- function(data, method.tau, method.sigma = "Jeffreys", 
                              burn = 1000, nmc = 5000, thin = 1, alpha = 0.05){
@@ -413,12 +433,12 @@ fit_hs_horseshoe <- function(data, method.tau, method.sigma = "Jeffreys",
   
   # Extract the target
   y <- data$y
-    
-  # Remove the original categorical variables
+  
+  # Remove y
   data <- data.frame(subset(data, select = -y))
-    
-  # Combine scaled continuous variables, intercept
-  X <- model.matrix(~ . - 1, data = data)
+  
+  # Combine intercept, variables
+  X <- model.matrix(~ ., data = data)
   
   # Fit the horseshoe model using the horseshoe package
   set.seed(42)
@@ -431,17 +451,13 @@ fit_hs_horseshoe <- function(data, method.tau, method.sigma = "Jeffreys",
                                         alpha = alpha)
   
   # Plot predicted values against the observed data
-  plot(y, X %*% fit_horseshoe$BetaHat, col = rep("blue", 20), 
-       xlab = "Observed values", ylab = "Predicted values",
-       main = "Horseshoe Model: Predicted vs Observed Values")
-  
-  # Print the posterior mean of tau
-  cat("Posterior mean of tau:", fit_horseshoe$TauHat, "\n")
+  plot_pred <- plot(y, X %*% fit_horseshoe$BetaHat,
+       xlab = "Observed values", ylab = "Predicted values")
   
   # Plot the credible intervals for coefficients
-  xYplot(Cbind(fit_horseshoe$BetaHat, fit_horseshoe$LeftCI, fit_horseshoe$RightCI) ~ 1:ncol(X),
-         type = c("p", "g", "g"), ylab = "Coefficients", xlab = "Variables",
-         main = "Credible Intervals for Coefficients")
+  plot_CI <- xYplot(Cbind(fit_horseshoe$BetaHat, fit_horseshoe$LeftCI, 
+                          fit_horseshoe$RightCI) ~ 1:ncol(X),
+         ylab = "Coefficients", xlab = "Variables")
   
   # Use HS.var.select to get the selected variables
   selected <- HS.var.select(fit_horseshoe, y = y, 
@@ -458,11 +474,9 @@ fit_hs_horseshoe <- function(data, method.tau, method.sigma = "Jeffreys",
   sel_var <- variable_names[selected_indices]
   
   # Return the fitted horseshoe model
-  return(list(model = fit_horseshoe, sel_var = sel_var))
+  return(list(model = fit_horseshoe, sel_var = sel_var, plot_CI = plot_CI, 
+              plot_pred = plot_pred))
 }
-
-
-
 
 #### HORSESHOE PRIOR 'bayesreg' ####
 
@@ -479,10 +493,12 @@ fit_hs_horseshoe <- function(data, method.tau, method.sigma = "Jeffreys",
 # OUTPUTS:
 #     A list containing:
 #       - model: Summary of the initial fitted horseshoe model.
-#       - conf_intervals: Confidence intervals of the coefficients of the initial model.
-#       - selected_variables: Names of the selected variables based on non-zero 95% confidence intervals.
+#       - conf_intervals: Confidence intervals of the coefficients of the 
+#                         initial model.
+#       - selected_variables: Names of the selected variables based on non-zero 
+#                             95% confidence intervals.
 #
-fit_horseshoe_bs <- function(data, n.samples = 1000, burnin = 200, 
+fit_horseshoe_bs <- function(data, n.samples = 5000, burnin = 1000, 
                              thin = 1, prior = "hs") {
   
   # Input checks
@@ -538,15 +554,10 @@ fit_horseshoe_bs <- function(data, n.samples = 1000, burnin = 200,
               selected_variables = selected_variables))
 }
 
+#### SSS WITH SCREENING 'BayesS5' ####
 
-
-
-
-
-
-#### SSS WITH SCREENING 'BayesS5' NOT finished ####
-
-# This function fits a sparse Bayesian linear regression model using the BayesS5 package. 
+# This function fits a sparse Bayesian linear regression model using the 
+#   BayesS5 package. 
 #   The S5 function promotes sparsity in the regression coefficients.
 #
 # Inputs:
@@ -558,14 +569,12 @@ fit_horseshoe_bs <- function(data, n.samples = 1000, burnin = 200,
 #             Bernoulli_Uniform or Uniform. Default is Bernoulli_Uniform.
 #     C0 - Normalisation constant for the S5 function.
 #     type - a type of nonlocal priors; ’pimom’ or ’pemom’.
-#     has_binary - Logical, TRUE when data includes a binary variable 
-#                 (first 2 columns).
 #
 # Outputs:
 #     list containing the fitted model, model summary, and selected variables.
 #
 fit_S5 <- function(data, ind_fun = ind_fun_pimom, model = Bernoulli_Uniform, 
-                  C0 = 5, type = "pimom", has_binary = FALSE) {
+                  C0 = 5, type = "pimom") {
   
   # Ensure data is a data frame
   if (!is.data.frame(data)) {
@@ -587,25 +596,14 @@ fit_S5 <- function(data, ind_fun = ind_fun_pimom, model = Bernoulli_Uniform,
     stop("'C0' must be a positive numeric value.")
   }
   
-  # Check if the flag 'has_binary' is a logical value
-  if (!is.logical(has_binary)) {
-    stop("'has_binary' must be a logical value.")
-  }
+  # Extract the target
+  y <- data$y
   
-  # Separate response variable (y) and predictors (X)
-  y <- scale(data$y)             
+  # Remove y
+  data <- data.frame(subset(data, select = -y))
   
-  # Remove target from data and convert into a matrix
-  X <- model.matrix(~ . - 1, data = data[, -which(names(data) == "y")])
-  
-  # Check if data has binary variables
-  if (has_binary) {
-    # If it does, remove the first binary variable and scale the rest
-    X <- scale(X[, -1])
-  } else {
-    # If it doesn't, scale the whole matrix
-    X <- scale(X)
-  }
+  # Combine intercept, variables
+  X <- model.matrix(~ .- 1, data = data)
   
   # Tuning parameters before fitting the model
   # Set seed for reproducibility
@@ -621,7 +619,7 @@ fit_S5 <- function(data, ind_fun = ind_fun_pimom, model = Bernoulli_Uniform,
   fit_S5_res <- result(fit_S5)
   
   # Extract the marginal probabilities
-  marg_probs <- fit_S5_res$marg.prob %>% round(0)
+  marg_probs <- fit_S5_res$marg.prob %>% round(5)
   
   # Get the variable names
   var_names <- colnames(X)
@@ -630,7 +628,8 @@ fit_S5 <- function(data, ind_fun = ind_fun_pimom, model = Bernoulli_Uniform,
   selected_variables <- data.frame(Variable = var_names, Included = marg_probs)
   
   # Return the fitted model, results summary and selected variables
-  return(list(model = fit_S5, summary = fit_S5_res, selected_variables = selected_variables))
+  return(list(model = fit_S5, summary = fit_S5_res, 
+              selected_variables = selected_variables))
 }
 
 
@@ -699,8 +698,8 @@ fit_blasso <- function(data,  T = 5000, RJ = TRUE, verb = 1, lambda2 = 1,
   
   # Extract the target
   y <- data$y
-    
-  # Remove the original categorical variables
+  
+  # Remove y
   data <- data.frame(subset(data, select = -y))
   
   # Set seed for reproducibility outside the loop
@@ -708,7 +707,7 @@ fit_blasso <- function(data,  T = 5000, RJ = TRUE, verb = 1, lambda2 = 1,
   
   # Fit the model on the full dataset
   blasso_model <- monomvn::blasso(X = data, y = y, lambda2 = 1, RJ = RJ, 
-                                T = T, verb = verb)
+                                T = T, verb = verb, normalize = FALSE)
   
   # Get the summary with burn-in
   blasso_summary <- summary(blasso_model, burnin = burnin)
@@ -728,9 +727,8 @@ fit_blasso <- function(data,  T = 5000, RJ = TRUE, verb = 1, lambda2 = 1,
   # Order data frame by probability in descending order
   sel_var_df <- sel_var_df[order(-sel_var_df$Probability), ]
   
-  # Return the fitted model, variable inclusion probabilities ,
+  # Return the fitted model, variable inclusion probabilities,
   #   selected variables above a threshold
   return(list(model = blasso_model, var_prob = var_prob, 
               sel_var_df = sel_var_df))
 }
-

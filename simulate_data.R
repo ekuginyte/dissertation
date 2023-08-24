@@ -2,28 +2,38 @@
 
 # Function to simulate a T1 type data set
 # INPUT: 
-#       p - number of covariates
-#       n - number of data points to simulate
-#       sigma_e - variance of the error term
-#       seed - seed for random number generation
+#       p - number of covariates.
+#       n - number of data points to simulate.
+#       sigma_e - variance of the error term.
+#       seed - seed for random number generation.
+#       standardise - whether to standardise the variables.
 # OUTPUT:
 #       sim_data - data frame with simulated data
-simulate_T1 <- function(p, n, sigma_e = sqrt(15), seed = 42) {
+simulate_T1 <- function(p, n, sigma_e = sqrt(15), 
+                        seed = 42, standardise = TRUE) {
   
   # Input validation
-  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || floor(seed) != seed)) {
-    stop("seed must be a non-negative integer or NULL")
+  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || seed %% 1 != 0)) {
+    # Check if the seed is a non-negative integer.
+    stop("seed must be a non-negative integer")
   }
   
   if (!is.numeric(p) || p <= 0 || floor(p) != p) {
+    # Check if p is a positive integer.
     stop("p must be a positive integer")
   }
   
   if (!is.numeric(n) || n <= 0 || floor(n) != n) {
+    # Check if n is a positive integer.
     stop("n must be a positive integer")
   }
   
-  # Set seed if provided
+  if (!is.numeric(sigma_e) || sigma_e <= 0) {
+    # Check if sigma_e is a positive number.
+    stop("sigma_e must be a positive number")
+  }
+  
+  # Set seed if not provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -52,6 +62,11 @@ simulate_T1 <- function(p, n, sigma_e = sqrt(15), seed = 42) {
   # Name the columns of the data frame
   colnames(sim_data) <- c("y", paste0("X", 1:p))
   
+  if (standardise) {
+    # Standardise only X variables, not y
+    sim_data[ , -1] <- scale(sim_data[ , -1])
+  }
+  
   # Return the dataset
   return(sim_data)
 }
@@ -68,9 +83,6 @@ T1_VD <- simulate_T1(p = 200, n = 50)
 # Simulate for XGBoost p << n
 T1_XD <- simulate_T1(p = 50, n = 500)
 
-
-
-
 #### SIMULATE T2 TEMPORAL CORRELATED CONTINUOUS DATA ####
 
 # Function to simulate a T2 type data set
@@ -80,28 +92,39 @@ T1_XD <- simulate_T1(p = 50, n = 500)
 #       rho - AR(1) correlation coefficient
 #       sigma_e - variance of the error term
 #       seed - seed for random number generation
+#       standardise - whether to standardise the variables.
 # OUTPUT:
 #       sim_data - data frame with simulated data
-simulate_T2 <- function(p, n, rho = 0.8, sigma_e = sqrt(10), seed = 42) {
+simulate_T2 <- function(p, n, rho = 0.8, sigma_e = sqrt(10), 
+                        seed = 42, standardise = TRUE) {
   
   # Input validation
+  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || seed %% 1 != 0)) {
+    # Check if the seed is a non-negative integer.
+    stop("seed must be a non-negative integer")
+  }
+  
   if (!is.numeric(p) || p <= 0 || floor(p) != p) {
+    # Check if p is a positive integer.
     stop("p must be a positive integer")
   }
   
   if (!is.numeric(n) || n <= 0 || floor(n) != n) {
+    # Check if n is a positive integer.
     stop("n must be a positive integer")
   }
-
+  
+  if (!is.numeric(sigma_e) || sigma_e <= 0) {
+    # Check if sigma_e is a positive number.
+    stop("sigma_e must be a positive number")
+  }
+  
   if (!is.numeric(rho) || rho < -1 || rho > 1) {
-    stop("rho must be a numeric value between -1 and 1")
+    # Check if rho is a number between -1 and 1.
+    stop("rho must be a number between -1 and 1")
   }
   
-  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || floor(seed) != seed)) {
-    stop("seed must be a non-negative integer or NULL")
-  }
-  
-  # Set seed if provided
+  # Set seed if not provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -130,6 +153,11 @@ simulate_T2 <- function(p, n, rho = 0.8, sigma_e = sqrt(10), seed = 42) {
   # Name the columns of the data frame
   colnames(sim_data) <- c("y", paste0("X", 1:p))
   
+  if (standardise) {
+    # Standardise only X variables, not y
+    sim_data[ , -1] <- scale(sim_data[ , -1])
+  }
+  
   # Return the dataset
   return(sim_data)
 }
@@ -145,41 +173,49 @@ T2_VD <- simulate_T2(p = 200, n = 50)
 # Simulate for XGBoost p << n
 T2_XD <- simulate_T2(p = 50, n = 500)
 
-
-
-
 #### SIMULATE T3 MIXED CONTINUOUS AND CATEGORICAL DATA ####
 
 # Function to simulate a T3 type data set with mixed continuous and 
 #     categorical variables, and some polynomials, interaction terms.
 # INPUT: 
-#       p - number of continuous covariates (minimum of 10)
-#       n - number of data points to simulate
-#       rho - AR(1) correlation coefficient
-#       sigma_e - variance of the error term
-#       seed - seed for random number generation
+#       p - number of continuous covariates (minimum of 10).
+#       n - number of data points to simulate.
+#       rho - AR(1) correlation coefficient.
+#       sigma_e - variance of the error term.
+#       seed - seed for random number generation.
+#       standardise - whether to standardise the variables.
 # OUTPUT:
 #       sim_data - data frame with simulated data
-simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
+simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), 
+                        seed = 42, standardise = TRUE) {
   
   # Input validation
+  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || seed %% 1 != 0)) {
+    # Check if the seed is a non-negative integer.
+    stop("seed must be a non-negative integer")
+  }
+  
   if (!is.numeric(p) || p <= 0 || floor(p) != p) {
+    # Check if p is a positive integer.
     stop("p must be a positive integer")
   }
   
   if (!is.numeric(n) || n <= 0 || floor(n) != n) {
+    # Check if n is a positive integer.
     stop("n must be a positive integer")
   }
   
+  if (!is.numeric(sigma_e) || sigma_e <= 0) {
+    # Check if sigma_e is a positive number.
+    stop("sigma_e must be a positive number")
+  }
+  
   if (!is.numeric(rho) || rho < -1 || rho > 1) {
-    stop("rho must be a numeric value between -1 and 1")
+    # Check if rho is a number between -1 and 1.
+    stop("rho must be a number between -1 and 1")
   }
   
-  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || floor(seed) != seed)) {
-    stop("seed must be a non-negative integer or NULL")
-  }
-  
-  # Set seed if provided
+  # Set seed if not provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -278,6 +314,14 @@ simulate_T3 <- function(p, n, rho = 0.6, sigma_e = sqrt(12), seed = 42) {
                           "poly_5_2", "poly_6_3", "poly_23_2", "poly_23_3",
                           paste0("X", 1:p))
   
+  if (standardise) {
+    # Select all variables except y, cat_var1, cat_var2
+    variables_to_scale <- setdiff(colnames(sim_data), c("y", "cat_var1", "cat_var2"))
+    
+    # Apply scale() to these variables
+    sim_data[variables_to_scale] <- scale(sim_data[variables_to_scale])
+  }
+  
   # Return the dataset
   return(sim_data)
 }
@@ -293,40 +337,48 @@ T3_VD <- simulate_T3(p = 200, n = 50)
 # Simulate for XGBoost p << n
 T3_XD <- simulate_T3(p = 50, n = 500)
 
-
-
-
 #### SIMULATE T4 GROUPED CONTINUOUS DATA WITH CATEGORICAL VARIABLES AND INTERACTIONS ####
 
 # Function to simulate a T4 type data set
 # INPUT: 
-#       p - number of continuous covariates
-#       n - number of data points to simulate
-#       rho - within-group correlation coefficient
-#       sigma_e - variance of the error term
-#       seed - seed for random number generation
+#       p - number of continuous covariates.
+#       n - number of data points to simulate.
+#       rho - within-group correlation coefficient.
+#       sigma_e - variance of the error term.
+#       seed - seed for random number generation.
+#       standardise - whether to standardise the variables.
 # OUTPUT:
 #       sim_data - data frame with simulated data
-simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
+simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), 
+                        seed = 42, standardise = TRUE) {
   
   # Input validation
-  if (!is.numeric(p) || p <= 0 || floor(p) != p || p %% 5 != 0) {
-    stop("p must be a positive integer that is divisible by 5")
+  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || seed %% 1 != 0)) {
+    # Check if the seed is a non-negative integer.
+    stop("seed must be a non-negative integer")
+  }
+  
+  if (!is.numeric(p) || p <= 0 || floor(p) != p) {
+    # Check if p is a positive integer.
+    stop("p must be a positive integer")
   }
   
   if (!is.numeric(n) || n <= 0 || floor(n) != n) {
+    # Check if n is a positive integer.
     stop("n must be a positive integer")
   }
   
+  if (!is.numeric(sigma_e) || sigma_e <= 0) {
+    # Check if sigma_e is a positive number.
+    stop("sigma_e must be a positive number")
+  }
+  
   if (!is.numeric(rho) || rho < -1 || rho > 1) {
-    stop("rho must be a numeric value between -1 and 1")
+    # Check if rho is a number between -1 and 1.
+    stop("rho must be a number between -1 and 1")
   }
   
-  if (!is.null(seed) && (!is.numeric(seed) || seed < 0 || floor(seed) != seed)) {
-    stop("seed must be a non-negative integer or NULL")
-  }
-  
-  # Set seed if provided
+  # Set seed if not provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -408,6 +460,14 @@ simulate_T4 <- function(p, n, rho = 0.6, sigma_e = sqrt(10), seed = 42) {
                           "interaction_term_16_17",
                           paste0("X", 1:p))
   
+  if (standardise) {
+    # Select all variables except y, cat_var1, cat_var2
+    variables_to_scale <- setdiff(colnames(sim_data), c("y", "cat_var1", "cat_var2"))
+    
+    # Apply scale() to these variables
+    sim_data[variables_to_scale] <- scale(sim_data[variables_to_scale])
+  }
+  
   # Return the dataset
   return(sim_data)
 }
@@ -422,7 +482,6 @@ T4_HD <- simulate_T4(p = 200, n = 150)
 T4_VD <- simulate_T4(p = 200, n = 50)
 # Simulate for XGBoost p << n
 T4_XD <- simulate_T4(p = 50, n = 500)
-
 
 # Remove functions
 rm(simulate_T1, simulate_T2, simulate_T3, simulate_T4)

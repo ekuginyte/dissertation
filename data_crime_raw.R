@@ -1,4 +1,26 @@
-################################################################################
+#### SET UP ####
+
+# Combine the list of libraries from both scripts
+library_list <- c("tidyverse", "corrplot", "glmnet", "cowplot", "car", "MASS", 
+                  "caret", "spikeslab", "SSLASSO", "horseshoe", "bayesreg", 
+                  "Hmisc", "BayesS5", "monomvn", "gridExtra", "ggpubr")
+
+# Un-comment the following lines if you need to install the packages
+# for (i in library_list) {
+#   install.packages(i, character.only = TRUE)
+# }
+
+# Load the libraries
+for (i in library_list) {
+  library(i, character.only = TRUE)
+}
+
+# Set working directory (assuming you want to set it to the 'main' directory)
+setwd("~/Documents/Dissertation/main/Dissertation")
+
+# Remove unwanted objects
+rm(library_list, i)
+
 #### READ IN AND WRANGLE DATA ####
 
 # Read the text file into a dataframe
@@ -11,37 +33,47 @@ df <- read.csv('~/Documents/Dissertation/data/CommViolPredUnnormalizedData.txt')
 # OUTPUT:
 #       df - data frame with new column names.
 rename_columns <- function(df) {
-  new_column_names <- c("communityname", "state", "countyCode", "communityCode", "fold", "population", 
-                        "householdsize", "racepctblack", "racePctWhite", "racePctAsian", "racePctHisp", 
-                        "agePct12t21", "agePct12t29", "agePct16t24", "agePct65up", "numbUrban", "pctUrban", 
-                        "medIncome", "pctWWage", "pctWFarmSelf", "pctWInvInc", "pctWSocSec", "pctWPubAsst", 
-                        "pctWRetire", "medFamInc", "perCapInc", "whitePerCap", "blackPerCap", "indianPerCap", 
-                        "AsianPerCap", "OtherPerCap", "HispPerCap", "NumUnderPov", "PctPopUnderPov", 
-                        "PctLess9thGrade", "PctNotHSGrad", "PctBSorMore", "PctUnemployed", "PctEmploy", 
-                        "PctEmplManu", "PctEmplProfServ", "PctOccupManu", "PctOccupMgmtProf", "MalePctDivorce", 
-                        "MalePctNevMarr", "FemalePctDiv", "TotalPctDiv", "PersPerFam", "PctFam2Par", 
-                        "PctKids2Par", "PctYoungKids2Par", "PctTeen2Par", "PctWorkMomYoungKids", "PctWorkMom", 
-                        "NumKidsBornNeverMar", "PctKidsBornNeverMar", "NumImmig", "PctImmigRecent", "PctImmigRec5", 
-                        "PctImmigRec8", "PctImmigRec10", "PctRecentImmig", "PctRecImmig5", "PctRecImmig8", 
-                        "PctRecImmig10", "PctSpeakEnglOnly", "PctNotSpeakEnglWell", "PctLargHouseFam", 
-                        "PctLargHouseOccup", "PersPerOccupHous", "PersPerOwnOccHous", "PersPerRentOccHous", 
-                        "PctPersOwnOccup", "PctPersDenseHous", "PctHousLess3BR", "MedNumBR", "HousVacant", 
-                        "PctHousOccup", "PctHousOwnOcc", "PctVacantBoarded", "PctVacMore6Mos", "MedYrHousBuilt", 
-                        "PctHousNoPhone", "PctWOFullPlumb", "OwnOccLowQuart", "OwnOccMedVal", "OwnOccHiQuart", 
-                        "OwnOccQrange", "RentLowQ", "RentMedian", "RentHighQ", "RentQrange", "MedRent", 
-                        "MedRentPctHousInc", "MedOwnCostPctInc", "MedOwnCostPctIncNoMtg", "NumInShelters", 
-                        "NumStreet", "PctForeignBorn", "PctBornSameState", "PctSameHouse85", "PctSameCity85", 
-                        "PctSameState85", "LemasSwornFT",  "LemasSwFTPerPop", "LemasSwFTFieldOps",
-                        "LemasSwFTFieldPerPop", "LemasTotalReq", "LemasTotReqPerPop", "PolicReqPerOffic",
-                        "PolicPerPop", "RacialMatchCommPol", "PctPolicWhite", "PctPolicBlack",
-                        "PctPolicHisp", "PctPolicAsian", "PctPolicMinor", "OfficAssgnDrugUnits",
-                        "NumKindsDrugsSeiz", "PolicAveOTWorked", "LandArea", "PopDens", "PctUsePubTrans",
-                        "PolicCars", "PolicOperBudg", "LemasPctPolicOnPatr",
-                        "LemasGangUnitDeploy", "LemasPctOfficDrugUn", "PolicBudgPerPop", "murders",
-                        "murdPerPop", "rapes", "rapesPerPop", "robberies", "robbbPerPop", "assaults",
-                        "assaultPerPop", "burglaries", "burglPerPop", "larcenies", "larcPerPop",
-                        "autoTheft", "autoTheftPerPop", "arsons", "arsonsPerPop", "ViolentCrimesPerPop",
-                        "nonViolPerPop")
+  new_column_names <- c("communityname", "state", "countyCode", "communityCode", "fold", 
+                        "population", "householdsize", "racepctblack", "racePctWhite", 
+                        "racePctAsian", "racePctHisp", "agePct12t21", "agePct12t29", 
+                        "agePct16t24", "agePct65up", "numbUrban", "pctUrban", 
+                        "medIncome", "pctWWage", "pctWFarmSelf", "pctWInvInc", 
+                        "pctWSocSec", "pctWPubAsst", "pctWRetire", "medFamInc", 
+                        "perCapInc", "whitePerCap", "blackPerCap", "indianPerCap", 
+                        "AsianPerCap", "OtherPerCap", "HispPerCap", "NumUnderPov", 
+                        "PctPopUnderPov", "PctLess9thGrade", "PctNotHSGrad", 
+                        "PctBSorMore", "PctUnemployed", "PctEmploy", "PctEmplManu", 
+                        "PctEmplProfServ", "PctOccupManu", "PctOccupMgmtProf", 
+                        "MalePctDivorce", "MalePctNevMarr", "FemalePctDiv", "TotalPctDiv", 
+                        "PersPerFam", "PctFam2Par", "PctKids2Par", "PctYoungKids2Par", 
+                        "PctTeen2Par", "PctWorkMomYoungKids", "PctWorkMom", 
+                        "NumKidsBornNeverMar", "PctKidsBornNeverMar", "NumImmig", 
+                        "PctImmigRecent", "PctImmigRec5", "PctImmigRec8", "PctImmigRec10", 
+                        "PctRecentImmig", "PctRecImmig5", "PctRecImmig8", "PctRecImmig10", 
+                        "PctSpeakEnglOnly", "PctNotSpeakEnglWell", "PctLargHouseFam", 
+                        "PctLargHouseOccup", "PersPerOccupHous", "PersPerOwnOccHous", 
+                        "PersPerRentOccHous", "PctPersOwnOccup", "PctPersDenseHous", 
+                        "PctHousLess3BR", "MedNumBR", "HousVacant", "PctHousOccup", 
+                        "PctHousOwnOcc", "PctVacantBoarded", "PctVacMore6Mos", 
+                        "MedYrHousBuilt", "PctHousNoPhone", "PctWOFullPlumb", 
+                        "OwnOccLowQuart", "OwnOccMedVal", "OwnOccHiQuart", 
+                        "OwnOccQrange", "RentLowQ", "RentMedian", "RentHighQ", 
+                        "RentQrange", "MedRent", "MedRentPctHousInc", "MedOwnCostPctInc", 
+                        "MedOwnCostPctIncNoMtg", "NumInShelters", "NumStreet", 
+                        "PctForeignBorn", "PctBornSameState", "PctSameHouse85", 
+                        "PctSameCity85", "PctSameState85", "LemasSwornFT",  
+                        "LemasSwFTPerPop", "LemasSwFTFieldOps", "LemasSwFTFieldPerPop", 
+                        "LemasTotalReq", "LemasTotReqPerPop", "PolicReqPerOffic",
+                        "PolicPerPop", "RacialMatchCommPol", "PctPolicWhite", 
+                        "PctPolicBlack", "PctPolicHisp", "PctPolicAsian", "PctPolicMinor", 
+                        "OfficAssgnDrugUnits", "NumKindsDrugsSeiz", "PolicAveOTWorked", 
+                        "LandArea", "PopDens", "PctUsePubTrans", "PolicCars", 
+                        "PolicOperBudg", "LemasPctPolicOnPatr", "LemasGangUnitDeploy", 
+                        "LemasPctOfficDrugUn", "PolicBudgPerPop", "murders", "murdPerPop", 
+                        "rapes", "rapesPerPop", "robberies", "robbbPerPop", "assaults",
+                        "assaultPerPop", "burglaries", "burglPerPop", "larcenies", 
+                        "larcPerPop", "autoTheft", "autoTheftPerPop", "arsons", 
+                        "arsonsPerPop", "ViolentCrimesPerPop", "nonViolPerPop")
   # Rename columns
   colnames(df) <- new_column_names
   return(df)
@@ -76,10 +108,12 @@ cols_with_na <- colSums(is.na(rows_with_na_indices))
 # Variables that hold information on specific convictions should be deleted
   # as the overall Violent Crimes number will be the target variable
 # List of column names to be removed
-cols_to_remove <- c("countyCode", "communityCode", "rapes", "rapesPerPop", "robberies", "robbbPerPop", 
-                    "assaults", "assaultPerPop", "burglaries", "burglPerPop", "larcenies", "larcPerPop", 
-                    "autoTheft", "autoTheftPerPop", "arsons", "arsonsPerPop", "nonViolPerPop", "fold",
-                    "murders", "murdPerPop", "OwnOccQrange", "RentQrange", "state")
+cols_to_remove <- c("countyCode", "communityCode", "rapes", "rapesPerPop", 
+                    "robberies", "robbbPerPop", "assaults", "assaultPerPop", 
+                    "burglaries", "burglPerPop", "larcenies", "larcPerPop", 
+                    "autoTheft", "autoTheftPerPop", "arsons", "arsonsPerPop", 
+                    "nonViolPerPop", "fold", "murders", "murdPerPop", 
+                    "OwnOccQrange", "RentQrange", "state")
 
 # Remove columns
 df <- df[, !(names(df) %in% cols_to_remove)]
@@ -104,25 +138,19 @@ df <- df[complete.cases(df), ]
 df <- df[, -1]
 
 # Rename the target
-colnames(df)[99] <- "y"
+df <- rename(df, y = ViolentCrimesPerPop)
 
 # Remove unwanted objects
 rm(df_with_na_cols_with_na, rows_with_na_indices, cols_to_remove, cols_with_na,
      cols_with_na_logical, columns_with_na, rows_with_na, rename_columns)
 
-
-
-################################################################################
 #### TRANSFORMING DATA ####
 
 # Transform all data
 df_t <- log(df + 1)
 
-
-
-
-################################################################################
 #### ADDING INTERACTION TERMS ####
+
 # As from the linear model and correlation matrix, parents who have not married,
 #   is an important predictor. Interesting to see a similar relationship 
 #   for the divorce rates too.
@@ -144,10 +172,7 @@ df_t$ForeignBorn_DivorcePct_Int <- df_t$PctForeignBorn * df_t$TotalPctDiv
 df_st <- scale(df_t) %>% data.frame()
 
 
-################################################################################
 #### EXPLORATORY ANALYSIS ####
-
-
 
 ## PLOTTING HISTOGRAMS ##
 
@@ -156,12 +181,25 @@ hist_list <- list()
 
 # Loop over the columns of the dataframe
 for (i in 1:(ncol(df))) {
-  # Create the histogram for column i
-  hist_list[[i]] <- ggplot(df, aes_string(names(df)[i])) + 
-    geom_histogram(fill = "gray99", color = "lightblue3", size = 0.4, alpha = 0.5) + 
-    ylab("Count") +
-    # Choose theme of plot
-    theme_minimal()  
+  # Base plot
+  p <- ggplot(df, aes_string(names(df)[i])) + 
+    geom_histogram(fill = "gray99", color = "lightblue3", size = 0.4, alpha = 0.5) +
+    theme_minimal() +
+    theme(
+      # Adjust font size
+      axis.title.x = element_text(size = 13),  
+      axis.title.y = element_text(size = 13)   
+    )
+  
+  # Only add y label if it's the first in a set of 3
+  if (i %% 3 == 1) {
+    p <- p + ylab("Count")
+  } else {
+    p <- p + ylab("")
+  }
+  
+  # Save the plot to the list
+  hist_list[[i]] <- p
 }
 
 
@@ -172,13 +210,27 @@ hist_t_list <- list()
 
 # Loop over the columns of the dataframe
 for (i in 1:(ncol(df_t))) {
-  # Create the histogram for column i
-  hist_t_list[[i]] <- ggplot(df_t, aes_string(names(df_t)[i])) + 
-    geom_histogram(fill = "gray99", color = "lightblue3", size = 0.4, alpha = 0.5) + 
-    ylab("Count") +
-    # Choose theme of plot
-    theme_minimal()  
+  # Base plot
+  p <- ggplot(df_t, aes_string(names(df_t)[i])) + 
+    geom_histogram(fill = "gray99", color = "lightblue3", size = 0.4, alpha = 0.5) +
+    theme_minimal() +
+    theme(
+      # Adjust font size
+      axis.title.x = element_text(size = 13),  
+      axis.title.y = element_text(size = 13)   
+    )
+  
+  # Only add y label if it's the first in a set of 3
+  if (i %% 3 == 1) {
+    p <- p + ylab("Count")
+  } else {
+    p <- p + ylab("")
+  }
+  
+  # Save the plot to the list
+  hist_t_list[[i]] <- p
 }
+
 
 
 ## PLOT INTERACTIONS WITH THE PREDICTION ##
@@ -189,10 +241,23 @@ scatter_t_list <- list()
 # Loop over the columns of the dataframe
 for (i in 1:(ncol(df_t)-1)) {
   # Create the scatter plot for column i vs prediction variable
-  scatter_t_list[[i]] <- ggplot(df_t, aes_string(x = names(df_t)[i], y = "y")) +
+  p <- ggplot(df_t, aes_string(x = names(df_t)[i], y = "y")) +
     geom_point(colour = "plum3", alpha = 0.2) +
-    # Minimal theme of plopt
-    theme_minimal() 
+    theme(
+      # Adjust font size
+      axis.title.x = element_text(size = 17)
+    ) +
+    # Minimal theme of plot
+    theme_minimal()
+  
+  # Only add y label if it's the first in a set of 3
+  if (i %% 4 == 1) {
+    p <- p + ylab("Y")
+  } else {
+    p <- p + ylab("")
+  }
+  
+  scatter_t_list[[i]] <- p
 }
 
 
@@ -205,17 +270,23 @@ boxplot_t_list <- list()
 for (i in 1:(ncol(df_t))) {
   # Create the boxplot for column i
   boxplot_t_list[[i]] <- ggplot(df_t, aes_string(x = 1, y = names(df_t)[i])) +
-    geom_boxplot(fill = "lightblue3", colour = "gray20", size = 0.1, alpha = 0.4) +
-    xlab("") +  # Removing the x-label as it's not meaningful here
+    geom_boxplot(fill = "lightblue3", colour = "gray20", size = 0.1, 
+                 alpha = 0.4) +
+    # Removing the x-label as it's not meaningful here
+    xlab("") + 
     theme_minimal() +
     theme(axis.text.x = element_blank())  # Remove x-axis text
 }
-
 
 ## PLOT CORRELATION MATRIX ##
 
 # Calculate the correlation matrix
 cor_matrix <- cor(df_t)
+
+# Dendrogram
+hc <- hclust(dist(1 - cor_matrix))
+# plot(hc)
+# split(names(clusters), clusters)
 
 
 ## MULTICOLLINEARITY CHECK ##
@@ -226,7 +297,6 @@ model <- lm(y ~ ., data = df)
 # Calculate VIF
 vif_values <- vif(model)
 
-
 ## NORMALITY CHECKS ##
 
 # Apply Shapiro-Wilk test to each column
@@ -235,7 +305,6 @@ p_values <- apply(df_t, 2, function(x) shapiro.test(x)$p.value)
 # Create a data frame of the results
 results <- data.frame(Variable = names(p_values), P_Value = p_values)
 #any(results$P_Value > 0.05)
-
 
 ## MISSING VALUES ##
 
@@ -258,17 +327,13 @@ check_data <- function(data) {
 # Does the data have any missing values?
 #df_t_missing <- check_data(df_t)
 
-
-
-
-################################################################################
 #### OUTLIERS ####
 
 # Define a function to detect outliers based on the IQR
 # INPUTS:
 #         data - the data frame containing the data
 #         columns - the columns in which to look for outliers
-#         factor - the factor to multiply the IQR by to find the bounds (default is 2)
+#         factor - the factor to multiply the IQR by to find the bounds (default 2)
 # OUTPUT:
 #         outlier_indices - indices of outliers.
 # 
@@ -306,15 +371,16 @@ detect_outliers_iqr <- function(data, columns, factor = 2){
   return(unique(outlier_indices))
 }
 
-
-# Call the detect_outliers_iqr function, passing the data frame and column names of the numeric columns.
+# Call the detect_outliers_iqr function, passing the data frame and column names 
+#   of the numeric columns.
 outlier_indices <- detect_outliers_iqr(df_t, names(df_t))
 
 # Print the number of outliers and their indices
 #cat(paste0("Number of outliers detected: ", length(outlier_indices)), "\n")
 #cat(paste0("Outlier indices: ", outlier_indices), "\n")
 
-# Remove the outliers from the data frame by subsetting the data frame to exclude these rows.
+# Remove the outliers from the data frame by subsetting the data frame to exclude 
+#   these rows.
 # The negative sign before outlier_indices means "all rows EXCEPT these indices".
 df_no_outliers <- df_t[-outlier_indices, ]
 
@@ -322,4 +388,3 @@ df_no_outliers <- df_t[-outlier_indices, ]
 rm(df_no_outliers, p_values, results, vif_values, i, check_data, 
    detect_outliers_iqr, scatter_list, model, outlier_indices, 
    df, model, df_t_missing)
-
