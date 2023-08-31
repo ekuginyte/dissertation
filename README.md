@@ -1,9 +1,9 @@
-## Variable Selection in High-Dimensional Data within the Bayesian Framework 
+##   Variable Selection in High-Dimensional Data within the Bayesian Framework 
 
 Final thesis as part of the Master's in Applied Statistics and Data Mining from University of St Andrews 
 
 Report Outline
-#    Introduction
+#    Abstract
     Methodology
       1. Data Exploration
       Explanatory Variables
