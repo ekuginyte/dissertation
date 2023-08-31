@@ -2,7 +2,7 @@
 
 Final thesis as part of the Master's in Applied Statistics and Data Mining from University of St Andrews 
 
-# Abstract
+### Abstract
     Methodology
       1. Data Exploration
       Explanatory Variables
